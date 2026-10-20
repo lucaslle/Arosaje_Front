@@ -11,7 +11,8 @@ import {
 import { FiSettings, FiLogOut } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import useCurrentUserStore from "../../store/CurrentUser.ts";
-import {FC, useEffect} from "react";
+import { useT } from "../../i18n/index.ts";
+import {FC} from "react";
 
 interface AvatarMenuProps {
     avatarUrl?: string;
@@ -22,80 +23,43 @@ const AvatarMenu: FC<AvatarMenuProps> = () => {
     const navigate = useNavigate();
     const toast = useToast();
     const user = useCurrentUserStore(state => state.user);
-    const token = useCurrentUserStore(state => state.token);
-    console.log(user)
-    useEffect(() => {
-    }, [user, token]);
 
-    const handleLogout = async () => {
-        try {
+    const logout = useCurrentUserStore(state => state.logout);
+    const t = useT();
 
-            const token = localStorage.getItem('authToken');
-
-            if (!token) {
-
-                navigate("/login");
-                return;
-            }
-
-            const response = await fetch('/api/auth/logout/', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Token ${token}`,
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            if (response.ok) {
-
-                localStorage.removeItem('authToken');
-
-                toast({
-                    title: "Déconnexion réussie",
-                    status: "success",
-                    duration: 3000,
-                    isClosable: true,
-                });
-
-
-                navigate("/login");
-            } else {
-                throw new Error('Erreur lors de la déconnexion');
-            }
-        } catch (error) {
-            console.error('Erreur de déconnexion:', error);
-            toast({
-                title: "Erreur",
-                description: "Une erreur est survenue lors de la déconnexion",
-                status: "error",
-                duration: 5000,
-                isClosable: true,
-            });
-            localStorage.removeItem('authToken');
-            navigate("/login");
-        }
+    // stateless JWT: the API has no logout route, clearing the token is the logout
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        logout();
+        toast({
+            title: t("header.logoutSuccess"),
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+        });
+        navigate("/login", { replace: true });
     };
-    console.log(user)
     const handleSettingClick = () => {
         navigate("/setting");
     };
 
     return (
         <Menu>
-            <MenuButton>
+            <MenuButton aria-label={t("header.accountMenu")} borderRadius="full" _focusVisible={{ boxShadow: "outline" }}>
                 <Avatar
-                    size="md"
-                    name={user.email}
-                    cursor="pointer"
+                    size="sm"
+                    name={user?.email}
+                    bg="brand.700"
+                    color="white"
                 />
             </MenuButton>
-            <MenuList color="black">
+            <MenuList color="text.primary">
                 <MenuItem
                     icon={<Icon as={FiSettings} />}
                     onClick={handleSettingClick}
                     fontWeight="bold"
                 >
-                    Paramètres
+                    {t("nav.settings")}
                 </MenuItem>
                 <MenuDivider />
                 <MenuItem
@@ -103,7 +67,7 @@ const AvatarMenu: FC<AvatarMenuProps> = () => {
                     onClick={handleLogout}
                     fontWeight="bold"
                 >
-                    Se déconnecter
+                    {t("header.logout")}
                 </MenuItem>
             </MenuList>
         </Menu>

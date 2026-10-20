@@ -1,16 +1,21 @@
-import { Input } from "@chakra-ui/react";
+import { FormControl, FormErrorMessage, FormLabel, Input } from "@chakra-ui/react";
 
-export const FormInput = ({ name, value, onChange, placeholder, type = "text" }) => (
-    <Input
-        name={name}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        variant="flushed"
-        colorScheme="green"
-        color="white"
-        fontSize="1.5rem"
-        type={type}
-        required
-    />
+export const FormInput = ({ name, label, value, onChange, type = "text", autoComplete = "", error = "" }) => (
+    <FormControl isRequired isInvalid={!!error}>
+        <FormLabel htmlFor={name} color="text.secondary" fontWeight="semibold" mb={1}>
+            {label}
+        </FormLabel>
+        <Input
+            id={name}
+            name={name}
+            value={value}
+            onChange={onChange}
+            type={type}
+            autoComplete={autoComplete}
+            size="lg"
+            focusBorderColor="brand.600"
+            borderRadius="xl"
+        />
+        <FormErrorMessage>{error}</FormErrorMessage>
+    </FormControl>
 );

@@ -3,7 +3,7 @@ import viteConfig from './vite.config.js'
 
 export default mergeConfig(viteConfig, defineConfig({
     test: {
-        reporters: ['html'],
+        reporters: ['default'],
         environment: 'jsdom',
         deps: {
             inline: ['@chakra-ui/react']

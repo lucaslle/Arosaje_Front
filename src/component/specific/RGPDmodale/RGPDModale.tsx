@@ -11,7 +11,7 @@ import {
     useDisclosure,
     Box,
 } from "@chakra-ui/react";
-import React from "react";
+import { useLanguageStore, useT } from "../../../i18n/index.ts";
 
 interface RGPDModalProps {
     isOpen: boolean;
@@ -19,17 +19,20 @@ interface RGPDModalProps {
 }
 
 function ModalRGPD( {isOpen, onClose }: RGPDModalProps){
+    const t = useT();
+    const language = useLanguageStore((state) => state.language);
 
     return(
         <Modal isOpen={isOpen} onClose={onClose} size="xl" scrollBehavior="inside">
             <ModalOverlay />
-            <ModalContent>
-                <ModalHeader>Politique de confidentialité</ModalHeader>
+            <ModalContent mx={4}>
+                <ModalHeader fontFamily="heading" fontWeight="normal">{t("common.privacyPolicy")}</ModalHeader>
                 <ModalCloseButton />
-                <ModalBody pb={6}>
+                <ModalBody pb={6} lang="fr">
         <Box overflow="auto" maxHeight={500}>
             <VStack align="start" spacing={4}>
-                <Text fontSize="sm" color="gray.500">Dernière mise à jour : 2 juillet 2025</Text>
+                {language !== "fr" && <Text fontSize="sm" color="text.muted" lang={language}>{t("privacy.frenchOnly")}</Text>}
+                <Text fontSize="sm" color="text.muted">Dernière mise à jour : 2 juillet 2025</Text>
 
                 <Heading size="md">1. Qui sommes-nous ?</Heading>
                 <Text>

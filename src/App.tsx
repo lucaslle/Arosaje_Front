@@ -1,50 +1,64 @@
 import { Box, ChakraProvider } from '@chakra-ui/react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import Sidebar from './component/generic/sidebar';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
+import Sidebar, { SIDEBAR_WIDTH } from './component/generic/sidebar';
 import theme from './theme';
 import Header from "./component/generic/header.tsx";
 import LoginPage from "./page/LoginPage";
-import {ReactNode} from "react";
 import SettingPage from "./page/settingPage.tsx";
 import HomePage from "./page/HomePage.tsx";
 import PlantsittingPage from "./page/plantSittingPage.tsx";
 import LikePage from './page/LikePage.tsx';
 
-function Layout({ children }: { children: ReactNode }) {
-    const location = useLocation();
-    const isLoginPage = location.pathname === "/login";
+const PLANT_SITTING_TYPES = ["all_plants", "care-requests"];
 
-    if (isLoginPage) {
-        return <>{children}</>;
+export function isLoggedIn(): boolean {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        return !payload.exp || payload.exp * 1000 > Date.now();
+    } catch {
+        return false;
+    }
+}
+
+function ProtectedLayout() {
+    if (!isLoggedIn()) {
+        return <Navigate to="/login" replace />;
     }
 
     return (
-        <>
+        <Box minH="100vh">
             <Sidebar />
-            <Box>
+            <Box ml={{ base: 0, md: SIDEBAR_WIDTH }} pb={{ base: 16, md: 0 }}>
                 <Header />
+                <Box as="main" px={{ base: 4, md: 8 }} py={{ base: 6, md: 8 }} maxW="7xl" mx="auto">
+                    <Outlet />
+                </Box>
             </Box>
-            <Box>
-                {children}
-            </Box>
-        </>
+        </Box>
     );
+}
+
+function PlantSittingRoute() {
+    const { type } = useParams();
+    return PLANT_SITTING_TYPES.includes(type ?? "") ? <PlantsittingPage /> : <Navigate to="/login" replace />;
 }
 
 function App() {
     return (
         <ChakraProvider theme={theme}>
             <Router>
-                <Layout>
-                    <Routes>
-                        <Route path="/login" element={<LoginPage />} />
-                        <Route path="/:type" element={<PlantsittingPage />} />
-                        <Route path="/:type" element={<PlantsittingPage />} />
+                <Routes>
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route element={<ProtectedLayout />}>
                         <Route path="/myplants" element={<HomePage />} />
                         <Route path="/setting" element={<SettingPage />} />
-                        <Route path={"/like"} element={<LikePage/>}/>
-                    </Routes>
-                </Layout>
+                        <Route path="/like" element={<LikePage />} />
+                        <Route path="/:type" element={<PlantSittingRoute />} />
+                    </Route>
+                    <Route path="*" element={<Navigate to="/login" replace />} />
+                </Routes>
             </Router>
         </ChakraProvider>
     );

@@ -10,8 +10,15 @@ import {
     Textarea,
     Button,
     Text,
-    Spinner, Card, CardHeader, Avatar, Box, CardBody, Tooltip, IconButton
+    Spinner,
+    Box,
+    Flex,
+    VStack,
+    useToast
 } from "@chakra-ui/react";
+import OwnerTag from "../../generic/ownerTag.tsx";
+import { API_URL } from "../../../api/apiUrl.ts";
+import { useLocale, useT } from "../../../i18n/index.ts";
 
 const MAX_LENGTH = 200;
 
@@ -20,11 +27,11 @@ type CommentType = {
     comment: string;
     time_stamp: string;
     user: {
-        _decrypted_username: string;
+        username: string;
         is_botanist: boolean;
     };
 };
-const API_BASE = "http://localhost:8000";
+const API_BASE = API_URL;
 const DrawerComment = ({
                            isOpen,
                            onClose,
@@ -35,29 +42,16 @@ const DrawerComment = ({
     plantId: number;
 }) => {
     const [comment, setComment] = useState("");
-    const [currentUser, setCurrentUser] = useState(null)
     const [comments, setComments] = useState<CommentType[]>([]);
     const [loading, setLoading] = useState(false);
+    const [isSending, setIsSending] = useState(false);
+    const toast = useToast();
+    const t = useT();
+    const locale = useLocale();
 
     const handleCommentChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setComment(event.target.value.slice(0, MAX_LENGTH));
     };
-    // const fetchMe = async () => {
-    //     try {
-    //         const res = await fetch(`${API_BASE}/user/me`,{
-    //             method: "GET",
-    //             headers: {
-    //                 Authorization: `Bearer ${localStorage.getItem('token')}`
-    //             },
-    //         });
-    //         if (!res.ok) throw new Error("Erreur réseau");
-    //         const data = await res.json();
-    //         setCurrentUser(data);
-    //     }catch(err){
-    //         console.error("", err);
-    //     }
-    // }
-    // console.log(currentUser)
     const fetchComments = async () => {
         try {
             setLoading(true);
@@ -74,94 +68,85 @@ const DrawerComment = ({
 
     const handleSendComment = async () => {
         if (comment.trim().length === 0) return;
+        setIsSending(true);
         try {
-            await fetch(`${API_BASE}/comments/?plant_id=${plantId}&comment=${encodeURIComponent(comment.trim())}`, {
-                method: "POST" ,
+            const res = await fetch(`${API_BASE}/comments/?plant_id=${plantId}&comment=${encodeURIComponent(comment.trim())}`, {
+                method: "POST",
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                },});
+                },
+            });
+            // keep the text on failure so the member does not lose what they typed
+            if (!res.ok) throw new Error(`Failed with status: ${res.status}`);
 
             setComment("");
             await fetchComments();
         } catch (err) {
             console.error(err);
+            toast({
+                title: t("comments.notSent"),
+                description: t("comments.notSentText"),
+                status: "error",
+                duration: 4000,
+                isClosable: true,
+            });
+        } finally {
+            setIsSending(false);
         }
     };
 
     useEffect(() => {
         if (isOpen) {
             fetchComments();
-            // fetchMe()
         }
     }, [isOpen]);
 
     return (
         <Drawer onClose={onClose} isOpen={isOpen} placement="right" size={"sm"}>
             <DrawerOverlay />
-            <DrawerContent>
+            <DrawerContent bg="bg.surface">
                 <DrawerCloseButton />
-                <DrawerHeader>Commentaires</DrawerHeader>
+                <DrawerHeader fontFamily="heading" fontWeight="normal" borderBottomWidth="1px" borderColor="border.subtle">{t("comments.title")}</DrawerHeader>
                 <DrawerBody>
                     {loading ? (
-                        <Spinner />
+                        <Flex justify="center" py={10}>
+                            <Spinner color="brand.600" label={t("comments.loading")} />
+                        </Flex>
                     ) : comments.length === 0 ? (
-                        <Text color="gray.500">Aucun commentaire pour le moment.</Text>
+                        <Flex direction="column" align="center" textAlign="center" gap={2} py={10} color="text.muted">
+                            <Box as="i" display="inline-block" className="fa-regular fa-comment-dots" fontSize="2xl" color="icon.placeholder" aria-hidden="true" />
+                            <Text>{t("comments.empty")}</Text>
+                        </Flex>
                     ) : (
-                        comments.map((c) => (
-                            <>
-                                <Card key={c.id} marginTop={4} borderColor={"black"} variant ={"outline"} backgroundColor={"gray.200"} size={"sm"}>
-                                    <CardHeader display="flex" justifyContent="space-between">
-                                        <Box display={"flex"} gap={4}>
-                                            <Avatar name={c.user._decrypted_username} size={"sm"}/>
-                                            <Text fontWeight="bold">{c.user._decrypted_username}{c.user?.is_botanist && (
-                                                <Tooltip label='Botanniste'>
-                                                    <i className="fa-solid fa-circle-check" style={{color: "black", marginLeft : "5px"}}></i>
-                                                </Tooltip>
-                                            )}</Text>
-
-
-                                        </Box>
-                                            {/*<Box>*/}
-                                            {/*    <IconButton*/}
-                                            {/*        icon={<i className="fa-solid fa-pen"/>}*/}
-                                            {/*        aria-label={'Modifier'}*/}
-                                            {/*        size={"sm"}*/}
-                                            {/*        variant={"ghost"}*/}
-                                            {/*    />*/}
-                                            {/*    <IconButton*/}
-                                            {/*        icon={<i className="fa-solid fa-trash"/>}*/}
-                                            {/*        aria-label={'Supprimer'}*/}
-                                            {/*        size={"sm"}*/}
-                                            {/*        variant={"ghost"}*/}
-                                            {/*    />*/}
-                                            {/*</Box>*/}
-                                    </CardHeader>
-                                    <CardBody>
-                                        <Text fontSize="sm" color="gray.600">
-                                            {new Date(c.time_stamp).toLocaleString("fr-FR")}
+                        <VStack as="ul" listStyleType="none" spacing={3} align="stretch">
+                            {comments.map((c) => (
+                                <Box as="li" key={c.id} bg="bg.subtle" borderRadius="xl" p={4}>
+                                    <Flex justify="space-between" align="center" mb={2} gap={2}>
+                                        <OwnerTag name={c.user.username} isBotanist={c.user?.is_botanist} />
+                                        <Text as="time" dateTime={c.time_stamp} fontSize="xs" color="text.muted" flexShrink={0}>
+                                            {new Date(c.time_stamp).toLocaleString(locale, { dateStyle: "short", timeStyle: "short" })}
                                         </Text>
-                                        <Text>{c.comment}</Text>
-                                    </CardBody>
-                                </Card>
-
-                            </>
-                        ))
+                                    </Flex>
+                                    <Text color="text.primary">{c.comment}</Text>
+                                </Box>
+                            ))}
+                        </VStack>
                     )}
                 </DrawerBody>
-                <DrawerFooter display={"grid"} w={400}>
+                <DrawerFooter display="grid" gap={2} borderTopWidth="1px" borderColor="border.subtle">
                     <Textarea
-                        borderColor={"green"}
-                        placeholder="Écris ton commentaire..."
+                        aria-label={t("comments.yourComment")}
+                        placeholder={t("comments.placeholder")}
                         value={comment}
                         onChange={handleCommentChange}
                         size="lg"
                         resize="none"
                     />
-                    <Text fontSize="sm" color="gray.500" mt={1} textAlign="right">
-                        {MAX_LENGTH - comment.length} caractères restants
+                    <Text fontSize="sm" color="text.muted" textAlign="right" aria-live="polite">
+                        {t("comments.remaining", { count: MAX_LENGTH - comment.length })}
                     </Text>
-                    <Button colorScheme="green" isDisabled={comment.trim().length === 0} onClick={handleSendComment}>
-                        Envoyer
+                    <Button isDisabled={comment.trim().length === 0} isLoading={isSending} onClick={handleSendComment}>
+                        {t("comments.send")}
                     </Button>
                 </DrawerFooter>
             </DrawerContent>

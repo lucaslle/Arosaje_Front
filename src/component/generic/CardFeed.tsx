@@ -1,17 +1,21 @@
+import { API_URL } from "../../api/apiUrl.ts";
 import {
+    Box,
     Card,
     CardBody,
+    CardFooter,
     Flex,
-    Avatar,
     Text,
     IconButton,
     useDisclosure,
-    Image,
     Heading,
     useToast
 } from "@chakra-ui/react";
 import { useState } from "react";
 import DrawerComment from "../specific/Comment/DrawerComment.tsx";
+import PlantPhoto from "./plantPhoto.tsx";
+import OwnerTag from "./ownerTag.tsx";
+import { useT } from "../../i18n/index.ts";
 
 interface Owner {
     email: string;
@@ -30,31 +34,41 @@ interface Plant {
     photo_url: string;
     owner_id: number;
     created_at: string;
-    in_care_id: number;
-    plant_sitting: number | null;
+    in_care_id: number | null;
+    care_requested: boolean;
     owner?: Owner;
 }
 
 interface PlantProps {
     plant: Plant;
+    currentUserId: number | null;
 }
 
-const CardFeed = ({ plant }: PlantProps) => {
+export const careState = (caretakerId: number | null, currentUserId: number | null, careRequested: boolean) => {
+    const isCare = currentUserId !== null && caretakerId === currentUserId;
+    const isCaredByOther = caretakerId !== null && !isCare;
+    // the API only lets a member take a plant whose owner asked for a sitter
+    return { isCare, isCaredByOther, canTake: currentUserId !== null && caretakerId === null && careRequested };
+};
+
+const CardFeed = ({ plant, currentUserId }: PlantProps) => {
     const { isOpen, onOpen, onClose } = useDisclosure();
-    const [isCare,setIsCare] = useState(false);
+    // in_care_id is the user currently looking after the plant
+    const [caretakerId, setCaretakerId] = useState(plant.in_care_id);
+    const [careRequested, setCareRequested] = useState(plant.care_requested);
+    const [isUpdating, setIsUpdating] = useState(false);
     const toast = useToast();
+    const t = useT();
+    const { isCare, isCaredByOther, canTake } = careState(caretakerId, currentUserId, careRequested);
+
+    const unavailableLabel = isCaredByOther ? t("plant.caredByOther") : t("plant.careNotRequested");
 
     const handleHeartClick = async () => {
-        if (plant.in_care_id === null ){
-            setIsCare(false)
-        }
-        else{
-            setIsCare(true)
-        }
         const endpoint = isCare
-            ? `http://localhost:8000/plants/${plant.id}/end-care`
-            : `http://localhost:8000/plants/${plant.id}/start-care`;
+            ? `${API_URL}/plants/${plant.id}/end-care`
+            : `${API_URL}/plants/${plant.id}/start-care`;
 
+        setIsUpdating(true);
         try {
             const response = await fetch(endpoint, {
                 method: "PUT",
@@ -64,114 +78,71 @@ const CardFeed = ({ plant }: PlantProps) => {
                 },
             });
 
-            if (response.ok) {
-                toast({
-                    title: isCare ? "Soin terminé." : "Soin démarré.",
-                    status: "success",
-                    duration: 2000,
-                    isClosable: true,
-                });
-            } else {
+            if (!response.ok) {
                 throw new Error("Erreur lors de la mise à jour des soins");
             }
+            setCaretakerId(isCare ? null : currentUserId);
+            setCareRequested(false);
+            toast({
+                title: isCare ? t("plant.careStopped") : t("plant.careStarted"),
+                status: "success",
+                duration: 2000,
+                isClosable: true,
+            });
         } catch (error) {
             console.error(error);
             toast({
-                title: "Erreur",
-                description: "Impossible de mettre à jour le soin de la plante.",
+                title: t("common.error"),
+                description: t("plant.careError"),
                 status: "error",
                 duration: 3000,
                 isClosable: true,
             });
+        } finally {
+            setIsUpdating(false);
         }
-    };
-
-    const getImageUrl = (url: string) => {
-        if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-            return url;
-        }
-        if (url && !url.startsWith('/')) {
-            return `http://${url}`;
-        }
-        return url || "/placeholder-plant.jpg";
     };
 
     return (
         <>
-            <Card
-                borderRadius="lg"
-                overflow="hidden"
-                boxShadow="md"
-                width={80}
-                height={350}
-                position="relative"
-            >
-                <IconButton
-                    icon={
-                        <i
-                            className={`fa-${isCare ? "solid" : "regular"} fa-heart`}
-                            style={{
-                                fontSize: "1.25rem",
-                                color: isCare ? "red" : "black",
-                            }}
-                        ></i>
-                    }
-                    variant="ghost"
-                    position="absolute"
-                    top="2"
-                    right="2"
-                    aria-label="Like"
-                    size="sm"
-                    zIndex="1"
-                    onClick={handleHeartClick}
-                />
-
-                {/* Image de la plante */}
-                <CardBody p={3}>
-                    <Image
-                        src={getImageUrl(plant.photo_url)}
-                        alt={plant.name}
-                        objectFit="cover"
-                        height="200px"
-                        width="100%"
-                        fallbackSrc="/placeholder-plant.jpg"
-                        onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = "/placeholder-plant.jpg";
-                        }}
-                    />
-                    <Heading size="md" mb={1}>{plant.name}</Heading>
-
-
-                    <Text fontSize="sm" color="gray.600" mb={2}>
-                        <b>Lieu:</b> {plant.location}
-                    </Text>
-                </CardBody>
-                <Flex
-                    bg={'#337418'}
-                    p="2"
-                    align="center"
-                    justify="space-between"
-                    position="absolute"
-                    bottom="0"
-                    width="100%"
-                >
-                    <Flex align="center" gap="2">
-                        <Avatar name={plant.owner?._decrypted_username} />
-                        <Text fontSize="lg" fontWeight={"bold"} color={"white"}>{plant.owner?._decrypted_username}</Text>
-                        {plant.owner?.is_botanist && (
-                            <i className="fa-solid fa-circle-check" style={{color: "white"}}></i>
-                        )}
-                    </Flex>
+            <Card overflow="hidden" h="100%" transition="box-shadow 200ms ease, transform 200ms ease" _hover={{ boxShadow: "cardHover", transform: "translateY(-2px)" }}>
+                <Box position="relative">
+                    <PlantPhoto url={plant.photo_url} alt={plant.name} />
                     <IconButton
-                        icon={<i className="fa-regular fa-comment-dots" style={{fontSize: "1.25rem", color: "white" }}></i>}
-                        variant="ghost"
-                        onClick={onOpen}
-                        colorScheme="green"
-                        color={'white'}
-                        aria-label="Commentaires"
+                        icon={<Box as="i" display="inline-block" className={`fa-${isCare ? "solid" : "regular"} fa-heart`} color={isCare ? "red.500" : "gray.700"} />}
+                        position="absolute"
+                        top={3}
+                        right={3}
+                        isRound
+                        bg="whiteAlpha.900"
+                        _hover={{ bg: "white" }}
+                        _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
+                        boxShadow="sm"
+                        aria-label={isCare ? t("plant.stopCare") : canTake ? t("plant.startCare") : unavailableLabel}
+                        title={isCare || canTake ? undefined : unavailableLabel}
+                        aria-pressed={isCare}
+                        isDisabled={!isCare && !canTake}
+                        isLoading={isUpdating}
+                        onClick={handleHeartClick}
                     />
-                </Flex>
+                </Box>
+                <CardBody px={4} py={3}>
+                    <Heading as="h3" size="sm" noOfLines={1} mb={1}>{plant.name}</Heading>
+                    <Flex align="center" gap={2} fontSize="sm" color="text.muted">
+                        <Box as="i" display="inline-block" className="fa-solid fa-location-dot" aria-hidden="true" />
+                        <Text noOfLines={1}>{plant.location}</Text>
+                    </Flex>
+                </CardBody>
+                <CardFooter px={4} py={3} borderTopWidth="1px" borderColor="border.subtle" justifyContent="space-between" alignItems="center">
+                    <OwnerTag name={plant.owner?.username} isBotanist={plant.owner?.is_botanist} />
+                    <IconButton
+                        icon={<Box as="i" display="inline-block" className="fa-regular fa-comment-dots" />}
+                        variant="ghost"
+                        color="text.brand"
+                        onClick={onOpen}
+                        aria-label={t("plant.viewComments")}
+                    />
+                </CardFooter>
             </Card>
             <DrawerComment isOpen={isOpen} onClose={onClose} plantId={plant.id} />
         </>

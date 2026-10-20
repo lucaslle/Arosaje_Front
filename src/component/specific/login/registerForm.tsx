@@ -1,87 +1,87 @@
-import {VStack, Button, Text, Checkbox} from "@chakra-ui/react";
-import {FormInput} from "./formInput.tsx";
-import {PasswordInput} from "./passwordInput.tsx";
+import { VStack, Button, Checkbox, Alert, AlertIcon, SimpleGrid, Text } from "@chakra-ui/react";
+import { FormInput } from "./formInput.tsx";
+import { PasswordInput } from "./passwordInput.tsx";
+import { useT } from "../../../i18n/index.ts";
 
-
-export const RegisterForm = ({
-                                 formData,
-                                 onSubmit,
-                                 onChange,
-                                 isLoading,
-                                 showPassword,
-                                 onTogglePassword,
-                                 onToggleMode
-                             }) => (
-    <form onSubmit={onSubmit} style={{ width: '80%' }}>
-        <VStack spacing={8} w="100%">
+export const RegisterForm = ({ formData, onSubmit, onChange, isLoading, showPassword, onTogglePassword, error, fieldErrors }) => {
+    const t = useT();
+    return (
+    <form onSubmit={onSubmit}>
+        <VStack spacing={5} w="100%">
+            {error && (
+                <Alert status="error" borderRadius="xl" role="alert">
+                    <AlertIcon />
+                    {error}
+                </Alert>
+            )}
             <FormInput
                 name="username"
+                label={t("common.username")}
+                autoComplete="username"
                 value={formData.username}
                 onChange={onChange}
-                placeholder="Identifiant"
             />
-            <FormInput
-                name="email"
-                value={formData.email}
-                onChange={onChange}
-                placeholder="Email"
-                type="email"
-            />
-            <FormInput
-                name="phone"
-                value={formData.phone}
-                onChange={onChange}
-                placeholder="Numéro de téléphone"
-                type="phone"
-
-            />
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5} w="100%">
+                <FormInput
+                    name="email"
+                    label={t("common.email")}
+                    type="email"
+                    autoComplete="email"
+                    value={formData.email}
+                    onChange={onChange}
+                />
+                <FormInput
+                    name="phone"
+                    label={t("common.phone")}
+                    type="tel"
+                    autoComplete="tel"
+                    value={formData.phone}
+                    onChange={onChange}
+                />
+            </SimpleGrid>
             <PasswordInput
                 name="password"
+                label={t("common.password")}
+                autoComplete="new-password"
                 value={formData.password}
                 onChange={onChange}
-                placeholder="Mot de passe"
                 showPassword={showPassword}
                 onTogglePassword={onTogglePassword}
             />
             <PasswordInput
                 name="password2"
+                label={t("register.confirmPassword")}
+                autoComplete="new-password"
                 value={formData.password2}
                 onChange={onChange}
-                placeholder="Confirmer le mot de passe"
                 showPassword={showPassword}
                 onTogglePassword={onTogglePassword}
+                error={fieldErrors.password2}
             />
             <Checkbox
+                alignSelf="flex-start"
+                colorScheme="brand"
+                size="lg"
                 isChecked={formData.is_botanist}
-                onChange={(e) =>
-                    onChange({
-                        target: {
-                            name: "is_botanist",
-                            value: e.target.checked,
-                        },
-                    })
-                }
-                color="white"
+                onChange={(e) => onChange({ target: { name: "is_botanist", value: e.target.checked } })}
             >
-                Je suis botaniste
+                <Text color="text.secondary">{t("register.isBotanist")}</Text>
             </Checkbox>
             <Button
                 type="submit"
-                colorScheme="green"
                 isLoading={isLoading}
+                loadingText={t("register.submitting")}
+                size="lg"
                 width="100%"
-            >
-                Créer un compte
-            </Button>
-            <Text
+                borderRadius="xl"
+                bg="brand.700"
                 color="white"
-                mt={4}
-                cursor="pointer"
-                _hover={{ textDecoration: "underline" }}
-                onClick={onToggleMode}
+                _hover={{ bg: "brand.800" }}
+                _active={{ bg: "brand.900" }}
             >
-                Déjà un compte ? Se connecter
-            </Text>
+                {t("register.submit")}
+            </Button>
         </VStack>
     </form>
 );
+};

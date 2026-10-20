@@ -6,9 +6,11 @@ import {
     ModalFooter,
     ModalBody,
     ModalProps,
+    ModalCloseButton,
     Button
 } from "@chakra-ui/react";
 import { FC, ReactNode } from "react";
+import { useT } from "../../i18n/index.ts";
 
 interface GenericModalProps extends Omit<ModalProps, "children"> {
     isOpen: boolean;
@@ -18,30 +20,36 @@ interface GenericModalProps extends Omit<ModalProps, "children"> {
     children: ReactNode;
     onCancel?: () => void;
     onConfirm?: () => void;
+    confirmLabel?: string;
+    isConfirmDisabled?: boolean;
 }
 
 const GenericModal: FC<GenericModalProps> = ({
                                                  isOpen,
                                                  onClose,
-                                                 title = "Titre de la modal",
+                                                 title,
                                                  size = "md",
                                                  children,
                                                  onCancel,
                                                  onConfirm,
+                                                 confirmLabel,
+                                                 isConfirmDisabled = false,
                                                  ...modalProps
                                              }) => {
+    const t = useT();
     return (
         <Modal isOpen={isOpen} onClose={onClose} size={size} {...modalProps}>
-            <ModalOverlay />
-            <ModalContent>
-                <ModalHeader>{title}</ModalHeader>
+            <ModalOverlay bg="blackAlpha.500" backdropFilter="blur(2px)" />
+            <ModalContent mx={4}>
+                <ModalHeader fontFamily="heading" fontWeight="normal">{title}</ModalHeader>
+                <ModalCloseButton />
                 <ModalBody>{children}</ModalBody>
                 <ModalFooter>
                     <Button variant="ghost" onClick={onCancel || onClose}>
-                        Annuler
+                        {t("common.cancel")}
                     </Button>
-                    <Button colorScheme="green" bg={'#337418'} ml={3} onClick={onConfirm}>
-                        Valider
+                    <Button ml={3} onClick={onConfirm} isDisabled={isConfirmDisabled}>
+                        {confirmLabel ?? t("common.validate")}
                     </Button>
                 </ModalFooter>
             </ModalContent>

@@ -14,10 +14,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: yarn install
+        run: npm ci
 
       - name: Run tests
-        run: yarn test:ui
+        run: npm test
+
+      - name: Build
+        run: npx vite build

@@ -1,40 +1,45 @@
 import { VStack, FormControl, FormLabel, Input, Button } from "@chakra-ui/react";
 import { FaSave } from "react-icons/fa";
+import { ChangeEvent, FormEvent } from "react";
+import { useT } from "../../../i18n/index.ts";
 
-export const UserInfoForm = () => (
-    <VStack spacing={4} align="start">
-        <FormControl>
-            <FormLabel>Nom</FormLabel>
-            <Input placeholder="Votre nom" />
-        </FormControl>
+export interface UserInfo {
+    username: string;
+    email: string;
+    phone: string;
+}
 
-        <FormControl>
-            <FormLabel>Prénom</FormLabel>
-            <Input placeholder="Votre prénom" />
-        </FormControl>
+interface UserInfoFormProps {
+    values: UserInfo;
+    onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+    onSubmit: (e: FormEvent) => void;
+    isSaving: boolean;
+}
 
-        <FormControl>
-            <FormLabel>Numéro de téléphone</FormLabel>
-            <Input placeholder="Votre numéro de téléphone" />
-        </FormControl>
+export const UserInfoForm = ({ values, onChange, onSubmit, isSaving }: UserInfoFormProps) => {
+    const t = useT();
+    return (
+    <form onSubmit={onSubmit}>
+        <VStack spacing={4} align="stretch">
+            <FormControl isRequired>
+                <FormLabel htmlFor="settings-username">{t("common.username")}</FormLabel>
+                <Input id="settings-username" name="username" autoComplete="username" value={values.username} onChange={onChange} />
+            </FormControl>
 
-        <FormControl>
-            <FormLabel>Email</FormLabel>
-            <Input placeholder="Votre email" />
-        </FormControl>
+            <FormControl isRequired>
+                <FormLabel htmlFor="settings-email">{t("common.email")}</FormLabel>
+                <Input id="settings-email" name="email" type="email" autoComplete="email" value={values.email} onChange={onChange} />
+            </FormControl>
 
-        <FormControl>
-            <FormLabel>Adresse</FormLabel>
-            <Input placeholder="Votre adresse" />
-        </FormControl>
+            <FormControl isRequired>
+                <FormLabel htmlFor="settings-phone">{t("common.phone")}</FormLabel>
+                <Input id="settings-phone" name="phone" type="tel" autoComplete="tel" value={values.phone} onChange={onChange} />
+            </FormControl>
 
-        <Button
-            colorScheme="green"
-            leftIcon={<FaSave />}
-            w="100%"
-            mt={4}
-        >
-            Mettre à jour
-        </Button>
-    </VStack>
-);
+            <Button type="submit" leftIcon={<FaSave />} isLoading={isSaving} loadingText={t("settings.saving")} mt={2}>
+                {t("settings.saveInfo")}
+            </Button>
+        </VStack>
+    </form>
+    );
+};

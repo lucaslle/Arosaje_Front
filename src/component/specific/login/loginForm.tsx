@@ -1,50 +1,51 @@
-import { VStack, Button, Text } from "@chakra-ui/react";
-import {FormInput} from "./formInput.tsx";
-import {PasswordInput} from "./passwordInput.tsx";
+import { VStack, Button, Alert, AlertIcon } from "@chakra-ui/react";
+import { FormInput } from "./formInput.tsx";
+import { PasswordInput } from "./passwordInput.tsx";
+import { useT } from "../../../i18n/index.ts";
 
-
-export const LoginForm = ({
-                              formData,
-                              onSubmit,
-                              onChange,
-                              isLoading,
-                              showPassword,
-                              onTogglePassword,
-                              onToggleMode
-                          }) => (
-    <form onSubmit={onSubmit} style={{ width: '80%' }}>
-        <VStack spacing={8} w="100%">
+export const LoginForm = ({ formData, onSubmit, onChange, isLoading, showPassword, onTogglePassword, error }) => {
+    const t = useT();
+    return (
+    <form onSubmit={onSubmit}>
+        <VStack spacing={5} w="100%">
+            {error && (
+                <Alert status="error" borderRadius="xl" role="alert">
+                    <AlertIcon />
+                    {error}
+                </Alert>
+            )}
             <FormInput
                 name="email"
+                label={t("common.email")}
+                type="email"
+                autoComplete="email"
                 value={formData.email}
                 onChange={onChange}
-                placeholder="E-mail"
             />
             <PasswordInput
                 name="password"
+                label={t("common.password")}
+                autoComplete="current-password"
                 value={formData.password}
                 onChange={onChange}
-                placeholder="Mot de passe"
                 showPassword={showPassword}
                 onTogglePassword={onTogglePassword}
             />
             <Button
                 type="submit"
-                colorScheme="green"
                 isLoading={isLoading}
+                loadingText={t("login.submitting")}
+                size="lg"
                 width="100%"
-            >
-                Se connecter
-            </Button>
-            <Text
+                borderRadius="xl"
+                bg="brand.700"
                 color="white"
-                mt={4}
-                cursor="pointer"
-                _hover={{ textDecoration: "underline" }}
-                onClick={onToggleMode}
+                _hover={{ bg: "brand.800" }}
+                _active={{ bg: "brand.900" }}
             >
-                Pas encore de compte ? Créer un compte
-            </Text>
+                {t("login.submit")}
+            </Button>
         </VStack>
     </form>
 );
+};

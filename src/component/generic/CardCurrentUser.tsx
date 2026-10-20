@@ -1,8 +1,10 @@
+import { API_URL } from "../../api/apiUrl.ts";
 import {
+    Box,
     Card,
     CardBody,
+    CardFooter,
     Flex,
-    Avatar,
     Text,
     IconButton,
     Menu,
@@ -25,10 +27,14 @@ import {
     Textarea,
     Button,
     Switch,
-    useDisclosure, Tooltip
+    useDisclosure
 } from "@chakra-ui/react";
 import { useState } from "react";
 import DrawerComment from "../specific/Comment/DrawerComment.tsx";
+import { apiErrorMessage } from "../../api/apiError.ts";
+import { useT } from "../../i18n/index.ts";
+import PlantPhoto from "./plantPhoto.tsx";
+import OwnerTag from "./ownerTag.tsx";
 
 interface Owner {
     email: string;
@@ -48,7 +54,8 @@ interface Plant {
     owner_id: number;
     created_at: string;
     in_care: boolean;
-    plant_sitting: number | null;
+    in_care_id: number | null;
+    care_requested: boolean;
     owner?: Owner;
 }
 
@@ -59,6 +66,7 @@ interface CardCurrentUserProps {
 
 const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
     const toast = useToast();
+    const t = useT();
     const { isOpen : updateIsOpen , onOpen : updateOnOpen, onClose : updateOnClose } = useDisclosure();
     const { isOpen : commentIsOpen , onOpen : commentOnOpen, onClose : commentOnClose } = useDisclosure();
 
@@ -66,51 +74,11 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
         name: plant.name,
         location: plant.location,
         care_instructions: plant.care_instructions || "",
-        in_care: plant.in_care,
+        care_requested: plant.care_requested,
         photo: null as File | null,
     });
 
-    const fetchPlants = async () => {
-        try {
-            const response = await fetch('http://localhost:8000/my_plants/', {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch plants');
-            }
-
-            const data = await response.json();
-        } catch (error) {
-            toast({
-                title: 'Error fetching plants',
-                description: error instanceof Error ? error.message : 'Unknown error occurred',
-                status: 'error',
-                duration: 3000,
-                isClosable: true,
-            });
-        }
-    };
-
-    fetchPlants();
-
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-
-    const getImageUrl = (url: string) => {
-
-        if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-            return url;
-        }
-
-
-        if (url && !url.startsWith('/')) {
-            return `http://${url}`;
-        }
-
-        return url || "/placeholder-plant.jpg";
-    };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -123,7 +91,7 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
     const handleSwitchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData(prev => ({
             ...prev,
-            in_care: e.target.checked
+            care_requested: e.target.checked
         }));
     };
 
@@ -143,14 +111,14 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
         }
     };
     const handleDelete = async () => {
-        if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${plant.name} ?`)) {
+        if (window.confirm(t("plant.confirmDelete", { name: plant.name }))) {
             try {
                 const token = localStorage.getItem("token");
 
                 if (!token) {
                     toast({
-                        title: "Erreur",
-                        description: "Vous devez être connecté pour effectuer cette action",
+                        title: t("common.error"),
+                        description: t("common.mustBeLoggedIn"),
                         status: "error",
                         duration: 5000,
                         isClosable: true,
@@ -158,7 +126,7 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
                     return;
                 }
 
-                const response = await fetch(`http://localhost:8000/plants?plant_id=${plant.id}`, {
+                const response = await fetch(`${API_URL}/plants?plant_id=${plant.id}`, {
                     method: "DELETE",
                     headers: {
                         "Authorization": `Bearer ${token}`,
@@ -168,12 +136,11 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.detail || "Erreur lors de la suppression");
+                    throw new Error(apiErrorMessage(errorData, t("plant.deleteError")));
                 }
 
                 toast({
-                    title: "Succès",
-                    description: `La plante "${plant.name}" a été supprimée avec succès`,
+                    title: t("plant.deleted", { name: plant.name }),
                     status: "success",
                     duration: 5000,
                     isClosable: true,
@@ -181,10 +148,10 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
                 window.location.reload();
             }
             catch (error) {
-                const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue";
+                const errorMessage = error instanceof Error ? error.message : t("common.unknownError");
 
                 toast({
-                    title: "Erreur de suppression",
+                    title: t("plant.deleteError"),
                     description: errorMessage,
                     status: "error",
                     duration: 5000,
@@ -203,8 +170,8 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
 
             if (!token) {
                 toast({
-                    title: "Erreur",
-                    description: "Vous devez être connecté pour effectuer cette action",
+                    title: t("common.error"),
+                    description: t("common.mustBeLoggedIn"),
                     status: "error",
                     duration: 5000,
                     isClosable: true,
@@ -213,16 +180,19 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
             }
 
 
+            // the API reads text fields from the query string; only the photo travels in the body
+            const queryParams = new URLSearchParams({
+                name: formData.name,
+                location: formData.location,
+                care_instructions: formData.care_instructions,
+                care_requested: String(formData.care_requested),
+            });
             const formDataToSend = new FormData();
-
-            formDataToSend.append("name", formData.name);
-            formDataToSend.append("location", formData.location);
-            formDataToSend.append("care_instructions", formData.care_instructions);
             if (formData.photo) {
                 formDataToSend.append("photo", formData.photo);
             }
 
-            const response = await fetch(`http://localhost:8000/plants/${plant.id}`, {
+            const response = await fetch(`${API_URL}/plants/${plant.id}?${queryParams}`, {
                 method: "PUT",
                 headers: {
                     "Authorization": `Bearer ${token}`
@@ -232,29 +202,25 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.detail || "Erreur lors de la mise à jour");
+                throw new Error(apiErrorMessage(errorData, t("plant.updateError")));
             }
 
             const updatedPlant = await response.json();
 
             toast({
-                title: "Succès",
-                description: `La plante "${plant.name}" a été mise à jour avec succès`,
+                title: t("plant.updated", { name: formData.name }),
                 status: "success",
                 duration: 5000,
                 isClosable: true,
             });
-            if (onUpdate) {
-                onUpdate(updatedPlant);
-            }
-            await fetchPlants();
+            onUpdate(updatedPlant);
             updateOnClose();
 
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "Une erreur inconnue est survenue";
+            const errorMessage = error instanceof Error ? error.message : t("common.unknownError");
 
             toast({
-                title: "Erreur de mise à jour",
+                title: t("plant.updateError"),
                 description: errorMessage,
                 status: "error",
                 duration: 5000,
@@ -268,141 +234,99 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
 
     return (
         <>
-            <Card
-                position="relative"
-                variant="elevation"
-                borderRadius="lg"
-                overflow="hidden"
-                boxShadow="md"
-                width={80}
-                height={350}
-            >
-                <CardBody p={3}>
-                    <Image
-                        src={getImageUrl(plant.photo_url)}
-                        alt={plant.photo_url}
-                        objectFit="cover"
-                        height="200px"
-                        width="100%"
-                        fallbackSrc="/placeholder-plant.jpg"
-                        onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = "/placeholder-plant.jpg";
-                        }}
-                    />
-                    <Heading size="md" mb={1}>{plant.name}</Heading>
-
-                    {plant.in_care && (
-                        <Badge colorScheme="blue" mb={2}>En attente</Badge>
+            <Card overflow="hidden" h="100%" transition="box-shadow 200ms ease, transform 200ms ease" _hover={{ boxShadow: "cardHover", transform: "translateY(-2px)" }}>
+                <Box position="relative">
+                    <PlantPhoto url={plant.photo_url} alt={plant.name} />
+                    {(plant.in_care || plant.care_requested) && (
+                        <Badge position="absolute" top={3} left={3} bg={plant.in_care ? "brand.700" : "accent.500"} color={plant.in_care ? "white" : "black"} borderRadius="full" px={3} py={1} textTransform="none" fontSize="xs">
+                            {plant.in_care ? t("plant.inCare") : t("plant.careRequested")}
+                        </Badge>
                     )}
-
-                    <Text fontSize="sm" color="gray.600" mb={2}>
-                        <b>Lieu:</b> {plant.location}
-                    </Text>
-                </CardBody>
-                <Flex
-                    bg={'#337418'}
-                    p="2"
-                    align="center"
-                    justify="space-between"
-                    position="absolute"
-                    bottom="0"
-                    width="100%"
-                >
-                    <Flex align="center" gap="2">
-                        <Avatar name={plant.owner?._decrypted_username}  />
-                        <Text color="white" fontSize="lg" fontWeight={'bold'}>{plant.owner?._decrypted_username}</Text>
-                        {plant.owner?.is_botanist && (
-                            <Tooltip label='Botanniste'>
-                                <i className="fa-solid fa-circle-check" style={{color: "white"}}></i>
-                            </Tooltip>
-                        )}
+                </Box>
+                <CardBody px={4} py={3}>
+                    <Heading as="h3" size="sm" noOfLines={1} mb={1}>{plant.name}</Heading>
+                    <Flex align="center" gap={2} fontSize="sm" color="text.muted">
+                        <Box as="i" display="inline-block" className="fa-solid fa-location-dot" aria-hidden="true" />
+                        <Text noOfLines={1}>{plant.location}</Text>
                     </Flex>
-
-                    <Menu>
+                </CardBody>
+                <CardFooter px={4} py={3} borderTopWidth="1px" borderColor="border.subtle" justifyContent="space-between" alignItems="center">
+                    <OwnerTag name={plant.owner?.username} isBotanist={plant.owner?.is_botanist} />
+                    <Menu placement="bottom-end">
                         <MenuButton
                             as={IconButton}
-                            aria-label='Options'
-                            icon={<i
-                                className="fa-solid fa-bars" style={{ fontSize: "1.25rem", color: "white" }}/>}
-                            variant={'ghost'}
+                            aria-label={t("plant.actionsFor", { name: plant.name })}
+                            icon={<Box as="i" display="inline-block" className="fa-solid fa-ellipsis-vertical" />}
+                            variant="ghost"
+                            color="text.secondary"
                         />
                         <MenuList>
-                            <MenuItem
-                                icon={<i className="fa-solid fa-pen"/>}
-                                onClick={updateOnOpen}
-                            >
-                                Modifier
+                            <MenuItem icon={<Box as="i" display="inline-block" className="fa-solid fa-pen" />} onClick={updateOnOpen}>
+                                {t("plant.edit")}
                             </MenuItem>
-                            <MenuItem
-                                icon={<i className="fa-solid fa-trash"/>}
-                                onClick={handleDelete}
-                            >
-                                Supprimer
+                            <MenuItem icon={<Box as="i" display="inline-block" className="fa-regular fa-comment-dots" />} onClick={commentOnOpen}>
+                                {t("plant.comments")}
                             </MenuItem>
-                            <MenuItem
-                                icon={<i className="fa-regular fa-comment-dots"/>}
-                                onClick={commentOnOpen}
-                            >
-                                Commentaire
+                            <MenuItem icon={<Box as="i" display="inline-block" className="fa-solid fa-trash" />} color="red.600" onClick={handleDelete}>
+                                {t("plant.delete")}
                             </MenuItem>
                         </MenuList>
                     </Menu>
-                </Flex>
+                </CardFooter>
             </Card>
 
             {/* Edit Modal */}
             <Modal isOpen={updateIsOpen} onClose={updateOnClose}>
                 <ModalOverlay />
                 <ModalContent>
-                    <ModalHeader>Modifier {plant.name}</ModalHeader>
+                    <ModalHeader fontFamily="heading" fontWeight="normal">{t("plant.editTitle", { name: plant.name })}</ModalHeader>
                     <ModalCloseButton />
                     <ModalBody>
                         <form onSubmit={handleSubmit}>
                             <FormControl mb={4}>
-                                <FormLabel>Nom</FormLabel>
+                                <FormLabel>{t("plant.name")}</FormLabel>
                                 <Input
                                     name="name"
                                     value={formData.name}
                                     onChange={handleInputChange}
-                                    placeholder="Nom de la plante"
+                                    placeholder={t("plant.namePlaceholder")}
                                 />
                             </FormControl>
 
                             <FormControl mb={4}>
-                                <FormLabel>Lieu</FormLabel>
+                                <FormLabel>{t("plant.location")}</FormLabel>
                                 <Input
                                     name="location"
                                     value={formData.location}
                                     onChange={handleInputChange}
-                                    placeholder="Lieu de la plante"
+                                    placeholder={t("plant.locationPlaceholder")}
                                 />
                             </FormControl>
 
                             <FormControl mb={4}>
-                                <FormLabel>Instructions d'entretien</FormLabel>
+                                <FormLabel>{t("plant.careInstructions")}</FormLabel>
                                 <Textarea
                                     name="care_instructions"
                                     value={formData.care_instructions}
                                     onChange={handleInputChange}
-                                    placeholder="Instructions d'entretien"
+                                    placeholder={t("plant.careInstructions")}
                                 />
                             </FormControl>
 
                             <FormControl mb={4} display="flex" alignItems="center">
-                                <FormLabel htmlFor="in-care" mb="0">
-                                    En attente d'entretien
+                                <FormLabel htmlFor="care-requested" mb="0">
+                                    {t("plant.requestCare")}
                                 </FormLabel>
                                 <Switch
-                                    id="in-care"
-                                    colorScheme={'green'}
-                                    isChecked={formData.in_care}
+                                    id="care-requested"
+                                    isDisabled={plant.in_care}
+                                    isChecked={formData.care_requested}
                                     onChange={handleSwitchChange}
                                 />
                             </FormControl>
 
                             <FormControl mb={4}>
-                                <FormLabel>Photo</FormLabel>
+                                <FormLabel>{t("plant.photo")}</FormLabel>
                                 <Input
                                     type="file"
                                     accept="image/*"
@@ -420,8 +344,8 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
                             </FormControl>
 
                             <Flex justify="flex-end" gap={3} mt={6}>
-                                <Button variant="ghost" onClick={updateOnClose}>Annuler</Button>
-                                <Button colorScheme="green" type="submit">Enregistrer</Button>
+                                <Button variant="ghost" onClick={updateOnClose}>{t("common.cancel")}</Button>
+                                <Button type="submit">{t("common.save")}</Button>
                             </Flex>
                         </form>
                     </ModalBody>

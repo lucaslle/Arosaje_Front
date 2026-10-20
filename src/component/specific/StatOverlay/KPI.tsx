@@ -1,62 +1,33 @@
-import {Box, Flex} from "@chakra-ui/react";
+import { Box, CircularProgress, CircularProgressLabel, Flex, Heading, Stat, StatHelpText, StatLabel, StatNumber, useColorModeValue } from "@chakra-ui/react";
+import { useT } from "../../../i18n/index.ts";
 
+interface KPIProps {
+    plantsInCare: number;
+    total: number;
+}
 
-function KPI () {
+function KPI({ plantsInCare, total }: KPIProps) {
+    const percent = total === 0 ? 0 : Math.round((plantsInCare / total) * 100);
+    const t = useT();
+    const trackColor = useColorModeValue("brand.50", "whiteAlpha.200");
+
     return (
-        <Box
-            bg="blackAlpha.900"
-            borderRadius="lg"
-            pt={12}
-            color="white"
-            w={80}
-            h={700}
-            position="sticky"
-            top="0"
-            mr={8}
-            mt={12}
-            borderColor={'#337418'}
-            borderWidth={2}
-        >
-            <Box position="relative" h={40} w={40} mx="auto">
-                <svg viewBox="0 0 100 100">
-                    <circle
-                        cx="50"
-                        cy="50"
-                        r="45"
-                        fill="none"
-                        stroke="gray"
-                        strokeWidth="10"
-                    />
-                    <circle
-                        cx="50"
-                        cy="50"
-                        r="45"
-                        fill="none"
-                        stroke="green.400"
-                        strokeWidth="10"
-                        strokeDasharray={`${(0/3) * 283} 283`}
-                        transform="rotate(-90 50 50)"
-                    />
-                </svg>
-                <Flex
-                    position="absolute"
-                    top="0"
-                    left="0"
-                    w="100%"
-                    h="100%"
-                    align="center"
-                    justify="center"
-                    direction="column"
-                    textAlign="center"
-                >
-                    <Box fontSize="xl" fontWeight="bold">
-                        0/3
-                    </Box>
-                    <Box fontSize="sm">Plant confiées</Box>
-                </Flex>
-            </Box>
+        <Box as="aside" bg="bg.surface" borderWidth="1px" borderColor="border.subtle" borderRadius="card" boxShadow="card" p={6} position={{ xl: "sticky" }} top={{ xl: 24 }}>
+            <Heading as="h2" size="sm" mb={6}>{t("kpi.title")}</Heading>
+            <Flex direction="column" align="center" gap={6}>
+                <CircularProgress value={percent} size="140px" thickness="10px" color="brand.600" trackColor={trackColor} aria-label={t("kpi.progressLabel")}>
+                    <CircularProgressLabel fontSize="xl" fontWeight="bold" color="text.primary">
+                        {plantsInCare}/{total}
+                    </CircularProgressLabel>
+                </CircularProgress>
+                <Stat textAlign="center">
+                    <StatLabel color="text.muted">{t("kpi.inCare")}</StatLabel>
+                    <StatNumber color="text.brand">{percent} %</StatNumber>
+                    <StatHelpText color="text.muted" mb={0}>{t("kpi.help")}</StatHelpText>
+                </Stat>
+            </Flex>
         </Box>
-    )
+    );
 }
 
 export default KPI;

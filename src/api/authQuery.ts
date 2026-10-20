@@ -1,5 +1,6 @@
+import { API_URL } from "./apiUrl.ts";
 export const loginUser = async (credentials) => {
-    const response = await fetch('http://localhost:8000/token', {
+    const response = await fetch(`${API_URL}/token`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -11,8 +12,9 @@ export const loginUser = async (credentials) => {
     });
 
     if (!response.ok) {
+        if (response.status === 401) throw new Error('login.badCredentials');
         const data = await response.json();
-        throw new Error(data.message || 'Erreur de connexion');
+        throw new Error(typeof data.detail === 'string' ? data.detail : 'login.genericError');
     }
 
     return response.json();
@@ -20,7 +22,7 @@ export const loginUser = async (credentials) => {
 
 
 export const registerUser = async (userData) => {
-    const response = await fetch('http://localhost:8000/users/', {
+    const response = await fetch(`${API_URL}/users/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -39,7 +41,7 @@ export const registerUser = async (userData) => {
 
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || "Erreur lors de la création du compte");
+        throw new Error(typeof error.detail === "string" ? error.detail : "register.genericError");
     }
 
     return response.json();
