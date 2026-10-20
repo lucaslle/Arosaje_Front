@@ -8,6 +8,10 @@ import SettingPage from "./page/settingPage.tsx";
 import HomePage from "./page/HomePage.tsx";
 import PlantsittingPage from "./page/plantSittingPage.tsx";
 import LikePage from './page/LikePage.tsx';
+import AdvicePage from './page/AdvicePage.tsx';
+import AdminPage from './page/AdminPage.tsx';
+import { useEffect } from 'react';
+import { useMeStore } from './store/me.ts';
 
 // bottom-right keeps toasts off the sticky header; on mobile they sit above the bottom tab bar (64px)
 const toastOptions = {
@@ -31,7 +35,14 @@ export function isLoggedIn(): boolean {
 }
 
 function ProtectedLayout() {
-    if (!isLoggedIn()) {
+    const loadMe = useMeStore((state) => state.load);
+    const loggedIn = isLoggedIn();
+
+    useEffect(() => {
+        if (loggedIn) loadMe();
+    }, [loggedIn, loadMe]);
+
+    if (!loggedIn) {
         return <Navigate to="/login" replace />;
     }
 
@@ -63,6 +74,8 @@ function App() {
                         <Route path="/myplants" element={<HomePage />} />
                         <Route path="/setting" element={<SettingPage />} />
                         <Route path="/like" element={<LikePage />} />
+                        <Route path="/advice" element={<AdvicePage />} />
+                        <Route path="/admin" element={<AdminPage />} />
                         <Route path="/:type" element={<PlantSittingRoute />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/login" replace />} />

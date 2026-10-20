@@ -60,3 +60,12 @@ export const useT = () => {
 export const useLocale = () => LANGUAGES[useLanguageStore((state) => state.language)].locale;
 
 export const isTranslationKey = (value: string): value is TranslationKey => value in fr;
+
+// care dates are calendar days ("2026-08-12"): build them locally so no time zone shifts the day
+export const useFormatDay = () => {
+    const locale = useLocale();
+    return useCallback((day: string) => {
+        const [year, month, date] = day.split("-").map(Number);
+        return new Date(year, month - 1, date).toLocaleDateString(locale, { day: "numeric", month: "short" });
+    }, [locale]);
+};

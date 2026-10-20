@@ -11,6 +11,7 @@ import {
     Button,
     Text,
     Spinner,
+    Badge,
     Box,
     Flex,
     VStack,
@@ -32,6 +33,12 @@ type CommentType = {
     };
 };
 const API_BASE = API_URL;
+
+// verified botanists' comments come first, each group keeps its order
+export const pinBotanistAdvice = <T extends { user: { is_botanist: boolean } }>(comments: T[]): T[] => [
+    ...comments.filter((c) => c.user?.is_botanist),
+    ...comments.filter((c) => !c.user?.is_botanist),
+];
 const DrawerComment = ({
                            isOpen,
                            onClose,
@@ -121,8 +128,22 @@ const DrawerComment = ({
                         </Flex>
                     ) : (
                         <VStack as="ul" listStyleType="none" spacing={3} align="stretch">
-                            {comments.map((c) => (
-                                <Box as="li" key={c.id} bg="bg.subtle" borderRadius="xl" p={4}>
+                            {pinBotanistAdvice(comments).map((c) => (
+                                <Box
+                                    as="li"
+                                    key={c.id}
+                                    bg="bg.subtle"
+                                    borderRadius="xl"
+                                    p={4}
+                                    borderLeftWidth={c.user?.is_botanist ? "4px" : 0}
+                                    borderLeftColor="brand.600"
+                                >
+                                    {c.user?.is_botanist && (
+                                        <Badge colorScheme="green" borderRadius="full" px={2} mb={2} textTransform="none">
+                                            <Box as="i" className="fa-solid fa-thumbtack" mr={1} aria-hidden="true" />
+                                            {t("comments.botanistAdvice")}
+                                        </Badge>
+                                    )}
                                     <Flex justify="space-between" align="center" mb={2} gap={2}>
                                         <OwnerTag name={c.user.username} isBotanist={c.user?.is_botanist} />
                                         <Text as="time" dateTime={c.time_stamp} fontSize="xs" color="text.muted" flexShrink={0}>

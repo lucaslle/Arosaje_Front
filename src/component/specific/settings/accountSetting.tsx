@@ -8,15 +8,23 @@ import { useT } from "../../../i18n/index.ts";
 interface AccountSettingsProps {
     onDelete: () => Promise<void>;
     isDeleting: boolean;
+    onExport: () => Promise<void>;
+    isExporting: boolean;
 }
 
-export const AccountSettings = ({ onDelete, isDeleting }: AccountSettingsProps) => {
+export const AccountSettings = ({ onDelete, isDeleting, onExport, isExporting }: AccountSettingsProps) => {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const cancelRef = useRef<HTMLButtonElement>(null);
     const t = useT();
 
     return (
         <VStack align="start" spacing={4}>
+            <HStack justify="space-between" w="100%" gap={4}>
+                <Text color="text.secondary">{t("settings.exportText")}</Text>
+                <Button size="sm" variant="outline" flexShrink={0} isLoading={isExporting} onClick={onExport}>
+                    {t("settings.export")}
+                </Button>
+            </HStack>
             <HStack justify="space-between" w="100%" gap={4}>
                 <Text color="text.secondary">{t("settings.deleteText")}</Text>
                 <Button colorScheme="red" variant="outline" size="sm" flexShrink={0} onClick={onOpen}>

@@ -21,6 +21,8 @@ interface Plant {
     in_care: boolean;
     in_care_id: number | null;
     care_requested: boolean;
+    care_start: string | null;
+    care_end: string | null;
 }
 
 const HomePage = () => {
@@ -28,6 +30,7 @@ const HomePage = () => {
     const toast = useToast();
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(true);
+    const [reloadKey, setReloadKey] = useState(0);
     const { isOpen, onOpen, onClose } = useDisclosure();
     const t = useT();
 
@@ -72,7 +75,7 @@ const HomePage = () => {
         };
 
         fetchPlants();
-    }, [toast]);
+    }, [toast, reloadKey]);
 
     return (
         <Grid templateColumns={{ base: "1fr", xl: "1fr 280px" }} gap={8} alignItems="start">
@@ -92,6 +95,7 @@ const HomePage = () => {
                                 key={plant.id}
                                 plant={plant}
                                 onUpdate={(updated) => setPlants((current) => current.map((p) => (p.id === updated.id ? updated : p)))}
+                                onCareChanged={() => setReloadKey((key) => key + 1)}
                             />
                         ))}
                     </PlantGrid>

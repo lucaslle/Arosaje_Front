@@ -1,100 +1,124 @@
-import { API_URL } from "../api/apiUrl.ts";
-import { Text, useToast } from "@chakra-ui/react";
+import { Box, Button, Flex, Input, InputGroup, InputLeftElement, Text, useToast } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import CardFeed from "../component/generic/CardFeed.tsx";
-import {useNavigate, useParams} from "react-router-dom";
 import PlantGrid from "../component/generic/plantGrid.tsx";
 import EmptyState from "../component/generic/emptyState.tsx";
+import { ApiError, api } from "../api/client.ts";
+import { useCommunityState } from "../api/community.ts";
+import type { Plant } from "../api/types.ts";
 import { TranslationKey, useT } from "../i18n/index.ts";
+import { useMeStore } from "../store/me.ts";
+
+const PAGE_SIZE = 24;
 
 const DESCRIPTIONS: Record<string, TranslationKey> = {
     "all_plants": "sitting.allPlantsIntro",
     "care-requests": "sitting.requestsIntro",
 };
 
-interface Plant {
-    name: string;
-    location: string;
-    care_instructions: string;
-    id: number;
-    photo_url: string;
-    owner_id: number;
-    created_at: string;
-    in_care_id: number | null;
-    care_requested: boolean;
-}
-
 function PlantsittingPage() {
-    const [plants, setPlants] = useState<Plant[]>([]);
-    const toast = useToast();
     const { type } = useParams();
-    const navigate = useNavigate();
+    const [plants, setPlants] = useState<Plant[]>([]);
+    const [search, setSearch] = useState("");
+    const [query, setQuery] = useState("");
+    const [hasMore, setHasMore] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const meId = useMeStore((state) => state.me?.id ?? null);
+    const community = useCommunityState();
+    const toast = useToast();
+    const navigate = useNavigate();
     const t = useT();
-    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+    // wait for the member to stop typing before searching
+    useEffect(() => {
+        const timer = setTimeout(() => setQuery(search.trim()), 300);
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    const fetchPage = async (offset: number) => {
+        const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(offset) });
+        if (query) params.set("q", query);
+        return api<Plant[]>(`/${type}/?${params}`);
+    };
 
     useEffect(() => {
-        const fetchPlants = async () => {
-            setIsLoading(true);
-
-            try {
-                const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
-                const [response, meResponse] = await Promise.all([
-                    fetch(`${API_URL}/${type}/`, { headers }),
-                    fetch(`${API_URL}/users/me/`, { headers }),
-                ]);
-
-                if (response.status === 401 || meResponse.status === 401) {
-                    toast({
-                        title: t("common.sessionExpired"),
-                        description: t("common.pleaseLogInAgain"),
-                        status: "warning",
-                        duration: 3000,
-                        isClosable: true,
-                    });
+        let cancelled = false;
+        setIsLoading(true);
+        fetchPage(0)
+            .then((page) => {
+                if (cancelled) return;
+                setPlants(page);
+                setHasMore(page.length === PAGE_SIZE);
+            })
+            .catch((error) => {
+                if (cancelled) return;
+                if (error instanceof ApiError && error.status === 401) {
+                    toast({ title: t("common.sessionExpired"), description: t("common.pleaseLogInAgain"), status: "warning", duration: 3000, isClosable: true });
                     navigate("/login");
                     return;
                 }
-
-                if (!response.ok || !meResponse.ok) {
-                    throw new Error(`Failed with status: ${response.ok ? meResponse.status : response.status}`);
-                }
-
-                const [data, me] = await Promise.all([response.json(), meResponse.json()]);
-                setPlants(data);
-                setCurrentUserId(me.id);
-            } catch (error) {
-                console.error("API Error:", error);
-                toast({
-                    title: t("sitting.loadError"),
-                    description: error instanceof Error ? error.message : t("common.unknownError"),
-                    status: 'error',
-                    duration: 3000,
-                    isClosable: true,
-                });
-            } finally {
-                setIsLoading(false);
-            }
+                toast({ title: t("sitting.loadError"), description: (error as Error).message, status: "error", duration: 3000, isClosable: true });
+            })
+            .finally(() => !cancelled && setIsLoading(false));
+        return () => {
+            cancelled = true;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [type, query]);
 
-        fetchPlants();
-    }, [toast, type]);
+    const loadMore = async () => {
+        setIsLoadingMore(true);
+        try {
+            const page = await fetchPage(plants.length);
+            setPlants((current) => [...current, ...page]);
+            setHasMore(page.length === PAGE_SIZE);
+        } catch (error) {
+            toast({ title: t("sitting.loadError"), description: (error as Error).message, status: "error", duration: 3000, isClosable: true });
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
 
     return (
         <>
-            <Text color="text.muted" mb={6}>{DESCRIPTIONS[type ?? ""] ? t(DESCRIPTIONS[type ?? ""]) : ""}</Text>
+            <Flex direction={{ base: "column", md: "row" }} justify="space-between" align={{ md: "center" }} gap={4} mb={6}>
+                <Text color="text.muted">{DESCRIPTIONS[type ?? ""] ? t(DESCRIPTIONS[type ?? ""]) : ""}</Text>
+                <InputGroup maxW={{ md: "sm" }}>
+                    <InputLeftElement pointerEvents="none" color="text.muted">
+                        <Box as="i" className="fa-solid fa-magnifying-glass" aria-hidden="true" />
+                    </InputLeftElement>
+                    <Input type="search" aria-label={t("search.label")} placeholder={t("search.placeholder")} value={search} onChange={(e) => setSearch(e.target.value)} />
+                </InputGroup>
+            </Flex>
             {!isLoading && plants.length === 0 ? (
                 <EmptyState
-                    icon="fa-solid fa-hand-holding-heart"
-                    title={t("sitting.emptyTitle")}
-                    description={t("sitting.emptyText")}
+                    icon={query ? "fa-solid fa-magnifying-glass" : "fa-solid fa-hand-holding-heart"}
+                    title={query ? t("list.noResults") : t("sitting.emptyTitle")}
+                    description={query ? "" : t("sitting.emptyText")}
                 />
             ) : (
-                <PlantGrid isLoading={isLoading}>
-                    {plants.map((plant) => (
-                        <CardFeed key={plant.id} plant={plant} currentUserId={currentUserId} />
-                    ))}
-                </PlantGrid>
+                <>
+                    <PlantGrid isLoading={isLoading}>
+                        {plants.map((plant) => (
+                            <CardFeed
+                                key={plant.id}
+                                plant={plant}
+                                meId={meId}
+                                myOffer={community.offerFor(plant.id)}
+                                isFavorite={community.isFavorite(plant.id)}
+                                onToggleFavorite={(_, favorite) => community.toggleFavorite(plant, favorite)}
+                                onOffersChanged={community.reloadOffers}
+                            />
+                        ))}
+                    </PlantGrid>
+                    {hasMore && !isLoading && (
+                        <Flex justify="center" mt={8}>
+                            <Button variant="outline" isLoading={isLoadingMore} onClick={loadMore}>{t("list.loadMore")}</Button>
+                        </Flex>
+                    )}
+                </>
             )}
         </>
     );

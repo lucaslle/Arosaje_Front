@@ -32,7 +32,10 @@ import {
 import { useState } from "react";
 import DrawerComment from "../specific/Comment/DrawerComment.tsx";
 import { apiErrorMessage } from "../../api/apiError.ts";
-import { useT } from "../../i18n/index.ts";
+import { useFormatDay, useT } from "../../i18n/index.ts";
+import OffersDrawer from "../specific/care/offersDrawer.tsx";
+import CareLogDrawer from "../specific/care/careLogDrawer.tsx";
+import AdviceModal from "../specific/adviceModal.tsx";
 import PlantPhoto from "./plantPhoto.tsx";
 import OwnerTag from "./ownerTag.tsx";
 
@@ -56,29 +59,53 @@ interface Plant {
     in_care: boolean;
     in_care_id: number | null;
     care_requested: boolean;
+    care_start: string | null;
+    care_end: string | null;
     owner?: Owner;
 }
 
 interface CardCurrentUserProps {
     plant: Plant;
     onUpdate: (updatedPlant: Plant) => void;
+    onCareChanged: () => void;
 }
 
-const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
+const CardCurrentUser = ({ plant, onUpdate, onCareChanged }: CardCurrentUserProps) => {
     const toast = useToast();
     const t = useT();
     const { isOpen : updateIsOpen , onOpen : updateOnOpen, onClose : updateOnClose } = useDisclosure();
     const { isOpen : commentIsOpen , onOpen : commentOnOpen, onClose : commentOnClose } = useDisclosure();
+    const offers = useDisclosure();
+    const journal = useDisclosure();
+    const advice = useDisclosure();
+    const formatDay = useFormatDay();
 
     const [formData, setFormData] = useState({
         name: plant.name,
         location: plant.location,
         care_instructions: plant.care_instructions || "",
         care_requested: plant.care_requested,
+        care_start: plant.care_start ?? "",
+        care_end: plant.care_end ?? "",
         photo: null as File | null,
     });
 
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+    // start from the plant as it is now: the care state may have changed since the card was rendered
+    const openEdit = () => {
+        setFormData({
+            name: plant.name,
+            location: plant.location,
+            care_instructions: plant.care_instructions || "",
+            care_requested: plant.care_requested,
+            care_start: plant.care_start ?? "",
+            care_end: plant.care_end ?? "",
+            photo: null,
+        });
+        setPhotoPreview(null);
+        updateOnOpen();
+    };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -180,6 +207,11 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
             }
 
 
+            if (formData.care_requested && (!formData.care_start || !formData.care_end)) {
+                toast({ title: t("care.datesRequired"), status: "warning", duration: 4000, isClosable: true });
+                return;
+            }
+
             // the API reads text fields from the query string; only the photo travels in the body
             const queryParams = new URLSearchParams({
                 name: formData.name,
@@ -187,6 +219,10 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
                 care_instructions: formData.care_instructions,
                 care_requested: String(formData.care_requested),
             });
+            if (formData.care_requested) {
+                queryParams.set("care_start", formData.care_start);
+                queryParams.set("care_end", formData.care_end);
+            }
             const formDataToSend = new FormData();
             if (formData.photo) {
                 formDataToSend.append("photo", formData.photo);
@@ -249,6 +285,17 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
                         <Box as="i" display="inline-block" className="fa-solid fa-location-dot" aria-hidden="true" />
                         <Text noOfLines={1}>{plant.location}</Text>
                     </Flex>
+                    {plant.care_start && plant.care_end && (
+                        <Flex align="center" gap={2} fontSize="sm" color="text.muted" mt={1}>
+                            <Box as="i" display="inline-block" className="fa-regular fa-calendar" aria-hidden="true" />
+                            <Text>{t("care.dates", { start: formatDay(plant.care_start), end: formatDay(plant.care_end) })}</Text>
+                        </Flex>
+                    )}
+                    {(plant.care_requested || plant.in_care) && (
+                        <Button size="sm" variant="outline" w="100%" mt={3} leftIcon={<Box as="i" className="fa-solid fa-hand-holding-heart" aria-hidden="true" />} onClick={offers.onOpen}>
+                            {t("care.offersTitle")}
+                        </Button>
+                    )}
                 </CardBody>
                 <CardFooter px={4} py={3} borderTopWidth="1px" borderColor="border.subtle" justifyContent="space-between" alignItems="center">
                     <OwnerTag name={plant.owner?.username} isBotanist={plant.owner?.is_botanist} />
@@ -261,8 +308,17 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
                             color="text.secondary"
                         />
                         <MenuList>
-                            <MenuItem icon={<Box as="i" display="inline-block" className="fa-solid fa-pen" />} onClick={updateOnOpen}>
+                            <MenuItem icon={<Box as="i" display="inline-block" className="fa-solid fa-pen" />} onClick={openEdit}>
                                 {t("plant.edit")}
+                            </MenuItem>
+                            <MenuItem icon={<Box as="i" display="inline-block" className="fa-solid fa-hand-holding-heart" />} onClick={offers.onOpen}>
+                                {t("care.offersTitle")}
+                            </MenuItem>
+                            <MenuItem icon={<Box as="i" display="inline-block" className="fa-solid fa-book-open" />} onClick={journal.onOpen}>
+                                {t("journal.title")}
+                            </MenuItem>
+                            <MenuItem icon={<Box as="i" display="inline-block" className="fa-solid fa-user-doctor" />} onClick={advice.onOpen}>
+                                {t("advice.ask")}
                             </MenuItem>
                             <MenuItem icon={<Box as="i" display="inline-block" className="fa-regular fa-comment-dots" />} onClick={commentOnOpen}>
                                 {t("plant.comments")}
@@ -325,6 +381,19 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
                                 />
                             </FormControl>
 
+                            {formData.care_requested && (
+                                <Flex gap={3} mb={4} direction={{ base: "column", sm: "row" }}>
+                                    <FormControl isRequired>
+                                        <FormLabel htmlFor={`care-start-${plant.id}`}>{t("care.startDate")}</FormLabel>
+                                        <Input id={`care-start-${plant.id}`} type="date" name="care_start" min={new Date().toISOString().slice(0, 10)} value={formData.care_start} onChange={handleInputChange} />
+                                    </FormControl>
+                                    <FormControl isRequired>
+                                        <FormLabel htmlFor={`care-end-${plant.id}`}>{t("care.endDate")}</FormLabel>
+                                        <Input id={`care-end-${plant.id}`} type="date" name="care_end" min={formData.care_start || new Date().toISOString().slice(0, 10)} value={formData.care_end} onChange={handleInputChange} />
+                                    </FormControl>
+                                </Flex>
+                            )}
+
                             <FormControl mb={4}>
                                 <FormLabel>{t("plant.photo")}</FormLabel>
                                 <Input
@@ -352,6 +421,9 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
                 </ModalContent>
             </Modal>
             <DrawerComment isOpen={commentIsOpen} onClose={commentOnClose} plantId={plant.id} />
+            <OffersDrawer plantId={plant.id} isOpen={offers.isOpen} onClose={offers.onClose} onCareChanged={onCareChanged} />
+            <CareLogDrawer plantId={plant.id} isOpen={journal.isOpen} canWrite={false} onClose={journal.onClose} />
+            <AdviceModal plantId={plant.id} isOpen={advice.isOpen} onClose={advice.onClose} />
         </>
     );
 };

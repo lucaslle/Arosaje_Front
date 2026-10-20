@@ -67,6 +67,7 @@ export const RegisterForm = ({ formData, onSubmit, onChange, isLoading, showPass
             >
                 <Text color="text.secondary">{t("register.isBotanist")}</Text>
             </Checkbox>
+            {formData.is_botanist && <Text fontSize="sm" color="text.muted" alignSelf="flex-start" mt={-3}>{t("register.botanistHelp")}</Text>}
             <Button
                 type="submit"
                 isLoading={isLoading}

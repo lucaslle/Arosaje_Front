@@ -2,6 +2,9 @@ import { Box, Button, ButtonGroup, Flex, Grid, Heading, Skeleton, Text, VStack, 
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AccountSettings } from "../component/specific/settings/accountSetting.tsx";
+import { PasswordForm } from "../component/specific/settings/passwordForm.tsx";
+import { api } from "../api/client.ts";
+import { useMeStore } from "../store/me.ts";
 import { UserInfo, UserInfoForm } from "../component/specific/settings/userInfoForm.tsx";
 import { API_URL } from "../api/apiUrl.ts";
 import { apiErrorMessage } from "../api/apiError.ts";
@@ -16,6 +19,8 @@ function SettingPage() {
     const [values, setValues] = useState<UserInfo>({ username: "", email: "", phone: "" });
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+    const me = useMeStore((state) => state.me);
     const toast = useToast();
     const navigate = useNavigate();
     const logout = useCurrentUserStore((state) => state.logout);
@@ -66,6 +71,23 @@ function SettingPage() {
         }
     };
 
+    const handleExport = async () => {
+        setIsExporting(true);
+        try {
+            const data = await api<unknown>("/users/me/export");
+            const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "arosaje-mes-donnees.json";
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            toast({ title: t("settings.exportError"), description: (error as Error).message, status: "error", duration: 5000, isClosable: true });
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const handleDelete = async () => {
         if (userId === null) return;
         setIsDeleting(true);
@@ -74,6 +96,7 @@ function SettingPage() {
             if (!response.ok) throw new Error(`Failed with status: ${response.status}`);
             localStorage.removeItem("token");
             logout();
+            useMeStore.getState().clear();
             toast({ title: t("settings.deleted"), status: "success", duration: 3000, isClosable: true });
             navigate("/login", { replace: true });
         } catch {
@@ -91,6 +114,15 @@ function SettingPage() {
                 ) : (
                     <UserInfoForm values={values} onChange={handleChange} onSubmit={handleSubmit} isSaving={isSaving} />
                 )}
+                {me?.is_botanist && (
+                    <Text mt={4} fontSize="sm" color={me.botanist_verified ? "text.brand" : "text.muted"}>
+                        <Box as="i" className={`fa-solid ${me.botanist_verified ? "fa-circle-check" : "fa-hourglass-half"}`} mr={2} aria-hidden="true" />
+                        {me.botanist_verified ? t("settings.botanistVerified") : t("settings.botanistPending")}
+                    </Text>
+                )}
+
+                <Heading as="h2" size="sm" mt={10} mb={6}>{t("settings.password")}</Heading>
+                <PasswordForm />
             </Box>
 
             <VStack spacing={8} align="stretch">
@@ -121,7 +153,7 @@ function SettingPage() {
 
                 <Box bg="bg.surface" borderWidth="1px" borderColor="border.subtle" borderRadius="card" boxShadow="card" p={{ base: 5, md: 8 }}>
                     <Heading as="h2" size="sm" mb={6}>{t("settings.account")}</Heading>
-                    <AccountSettings onDelete={handleDelete} isDeleting={isDeleting} />
+                    <AccountSettings onDelete={handleDelete} isDeleting={isDeleting} onExport={handleExport} isExporting={isExporting} />
                 </Box>
             </VStack>
         </Grid>
