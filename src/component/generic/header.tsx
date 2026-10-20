@@ -5,6 +5,7 @@ import { ColorModeToggle, LanguageMenu } from "./preferences.tsx";
 import { TranslationKey, useT } from "../../i18n/index.ts";
 
 const PAGE_TITLES: Record<string, TranslationKey> = {
+    "/dashboard": "nav.dashboard",
     "/myplants": "nav.myPlants",
     "/all_plants": "nav.plants",
     "/care-requests": "nav.plantSitting",

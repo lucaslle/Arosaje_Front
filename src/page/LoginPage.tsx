@@ -65,7 +65,7 @@ export default function LoginPage() {
                 localStorage.setItem('token', data.access_token);
                 setCurrentUser({ email: formData.email, token: data.access_token });
                 toast({ title: t("login.success"), status: "success", duration: 3000, isClosable: true });
-                navigate("/myplants");
+                navigate("/dashboard");
             }
         } catch (error) {
             setLoginError(errorText(error, "login.genericError"));

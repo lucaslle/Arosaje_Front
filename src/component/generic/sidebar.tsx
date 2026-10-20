@@ -12,11 +12,12 @@ export const SIDEBAR_WIDTH = 64;
 interface MenuItem { id: string; label: TranslationKey; icon: string; href: string; secondary?: boolean }
 
 const menuItems: MenuItem[] = [
+    { id: 'dashboard', label: 'nav.dashboard', icon: 'fa-solid fa-gauge', href: '/dashboard' },
     { id: 'myplants', label: 'nav.myPlants', icon: 'fa-solid fa-house', href: '/myplants' },
     { id: 'allplants', label: 'nav.plants', icon: 'fa-solid fa-seedling', href: '/all_plants' },
     { id: 'plantscare', label: 'nav.plantSitting', icon: 'fa-solid fa-hand-holding-heart', href: '/care-requests' },
     { id: 'favourites', label: 'nav.favourites', icon: 'fa-solid fa-heart', href: '/like', secondary: true },
-    { id: 'setting', label: 'nav.settings', icon: 'fa-solid fa-gear', href: '/setting' }
+    { id: 'setting', label: 'nav.settings', icon: 'fa-solid fa-gear', href: '/setting', secondary: true }
 ];
 export const ADVICE_ITEM: MenuItem = { id: 'advice', label: 'nav.advice', icon: 'fa-solid fa-user-doctor', href: '/advice', secondary: true };
 export const ADMIN_ITEM: MenuItem = { id: 'admin', label: 'nav.admin', icon: 'fa-solid fa-user-shield', href: '/admin', secondary: true };

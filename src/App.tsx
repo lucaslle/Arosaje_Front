@@ -10,6 +10,7 @@ import PlantsittingPage from "./page/plantSittingPage.tsx";
 import LikePage from './page/LikePage.tsx';
 import AdvicePage from './page/AdvicePage.tsx';
 import AdminPage from './page/AdminPage.tsx';
+import DashboardPage from './page/DashboardPage.tsx';
 import { useEffect } from 'react';
 import { useMeStore } from './store/me.ts';
 
@@ -71,6 +72,7 @@ function App() {
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />
                     <Route element={<ProtectedLayout />}>
+                        <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/myplants" element={<HomePage />} />
                         <Route path="/setting" element={<SettingPage />} />
                         <Route path="/like" element={<LikePage />} />

@@ -28,7 +28,7 @@ describe('Sidebar', () => {
     it('links to every section', () => {
         renderAt('/myplants');
         const hrefs = screen.getAllByRole('link', { hidden: true }).map((link) => link.getAttribute('href'));
-        expect(hrefs).toEqual(['/myplants', '/all_plants', '/care-requests', '/like', '/setting']);
+        expect(hrefs).toEqual(['/dashboard', '/myplants', '/all_plants', '/care-requests', '/like', '/setting']);
     });
 
     it('shows advice to verified botanists and admin to admins only', () => {

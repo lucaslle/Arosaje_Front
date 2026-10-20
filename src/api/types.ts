@@ -95,3 +95,23 @@ export interface BotanistRequest {
     username: string | null;
     email: string | null;
 }
+
+export interface DashboardOffer {
+    id: number;
+    plant_id: number;
+    plant_name: string;
+    sitter_username: string | null;
+    created_at: string;
+}
+
+export interface Dashboard {
+    plants_total: number;
+    plants_waiting_sitter: number;
+    plants_being_cared: number;
+    offers_to_answer: DashboardOffer[];
+    reviews_to_give: DashboardOffer[];
+    sitting: { plant: PlantSummary; care_end: string | null }[];
+    my_pending_offers: number;
+    advice: { id: number; plant_id: number; plant_name: string; question: string; status: "open" | "answered" | "closed" }[];
+    reputation: SitterPublic;
+}
