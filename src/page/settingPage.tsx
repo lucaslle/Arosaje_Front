@@ -56,14 +56,17 @@ function SettingPage() {
         if (userId === null) return;
         setIsSaving(true);
         try {
-            const response = await fetch(`${API_URL}/users/${userId}?${new URLSearchParams({ ...values })}`, {
+            // in the body: e-mail and phone must never appear in a URL, which the server logs
+            const response = await fetch(`${API_URL}/users/${userId}`, {
                 method: "PUT",
-                headers: authHeaders(),
+                headers: { ...authHeaders(), "Content-Type": "application/json" },
+                body: JSON.stringify(values),
             });
             if (!response.ok) {
                 throw new Error(apiErrorMessage(await response.json(), t("settings.checkFields")));
             }
             toast({ title: t("settings.saved"), status: "success", duration: 3000, isClosable: true });
+            useMeStore.getState().load();
         } catch (error) {
             toast({ title: t("settings.saveError"), description: (error as Error).message, status: "error", duration: 5000, isClosable: true });
         } finally {

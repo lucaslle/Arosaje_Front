@@ -212,23 +212,21 @@ const CardCurrentUser = ({ plant, onUpdate, onCareChanged }: CardCurrentUserProp
                 return;
             }
 
-            // the API reads text fields from the query string; only the photo travels in the body
-            const queryParams = new URLSearchParams({
-                name: formData.name,
-                location: formData.location,
-                care_instructions: formData.care_instructions,
-                care_requested: String(formData.care_requested),
-            });
-            if (formData.care_requested) {
-                queryParams.set("care_start", formData.care_start);
-                queryParams.set("care_end", formData.care_end);
-            }
+            // form fields, not the URL: the location is personal and URLs end up in the server logs
             const formDataToSend = new FormData();
+            formDataToSend.append("name", formData.name);
+            formDataToSend.append("location", formData.location);
+            formDataToSend.append("care_instructions", formData.care_instructions);
+            formDataToSend.append("care_requested", String(formData.care_requested));
+            if (formData.care_requested) {
+                formDataToSend.append("care_start", formData.care_start);
+                formDataToSend.append("care_end", formData.care_end);
+            }
             if (formData.photo) {
                 formDataToSend.append("photo", formData.photo);
             }
 
-            const response = await fetch(`${API_URL}/plants/${plant.id}?${queryParams}`, {
+            const response = await fetch(`${API_URL}/plants/${plant.id}`, {
                 method: "PUT",
                 headers: {
                     "Authorization": `Bearer ${token}`

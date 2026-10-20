@@ -79,11 +79,13 @@ const DrawerComment = ({
         if (comment.trim().length === 0) return;
         setIsSending(true);
         try {
-            const res = await fetch(`${API_BASE}/comments/?plant_id=${plantId}&comment=${encodeURIComponent(comment.trim())}`, {
+            const res = await fetch(`${API_BASE}/comments/`, {
                 method: "POST",
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json',
                 },
+                body: JSON.stringify({ plant_id: plantId, comment: comment.trim() }),
             });
             // keep the text on failure so the member does not lose what they typed
             if (!res.ok) throw new Error(`Failed with status: ${res.status}`);

@@ -61,22 +61,21 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
 
     const handleSubmit = async () => {
         try {
-            const queryParams = new URLSearchParams({
-                name: formData.name,
-                location: formData.location,
-                care_instructions: formData.care_instructions
-            });
-
+            // form fields, not the URL: the location is personal and URLs end up in the server logs
             const submitData = new FormData();
+            submitData.append('name', formData.name);
+            submitData.append('location', formData.location);
+            if (formData.care_instructions) submitData.append('care_instructions', formData.care_instructions);
             if (selectedFile) {
                 submitData.append('photo', selectedFile);
             }
 
-            const response = await fetch(`${API_URL}/plants/?${queryParams}`, {
+            const response = await fetch(`${API_URL}/plants/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                },                body: submitData // On envoie uniquement la photo dans le body
+                },
+                body: submitData
             });
 
             if (!response.ok) {
