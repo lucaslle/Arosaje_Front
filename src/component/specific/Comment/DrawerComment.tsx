@@ -55,7 +55,9 @@ const DrawerComment = ({
     const fetchComments = async () => {
         try {
             setLoading(true);
-            const res = await fetch(`${API_BASE}/plants/${plantId}/comments/`);
+            const res = await fetch(`${API_BASE}/plants/${plantId}/comments/`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+            });
             if (!res.ok) throw new Error("Erreur réseau");
             const data = await res.json();
             setComments(data);
