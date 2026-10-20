@@ -26,7 +26,8 @@ export const LanguageMenu = ({ showName = false }: { showName?: boolean }) => {
     const t = useT();
 
     return (
-        <Menu placement="bottom-end">
+        // isLazy: a closed Menu otherwise keeps its hidden list unpositioned past the right edge, adding page scrollbars
+        <Menu placement="bottom-end" isLazy>
             <MenuButton
                 as={Button}
                 variant="ghost"

@@ -252,7 +252,7 @@ const CardCurrentUser = ({ plant, onUpdate }: CardCurrentUserProps) => {
                 </CardBody>
                 <CardFooter px={4} py={3} borderTopWidth="1px" borderColor="border.subtle" justifyContent="space-between" alignItems="center">
                     <OwnerTag name={plant.owner?.username} isBotanist={plant.owner?.is_botanist} />
-                    <Menu placement="bottom-end">
+                    <Menu placement="bottom-end" isLazy>
                         <MenuButton
                             as={IconButton}
                             aria-label={t("plant.actionsFor", { name: plant.name })}

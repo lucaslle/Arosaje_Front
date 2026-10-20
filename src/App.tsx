@@ -9,6 +9,14 @@ import HomePage from "./page/HomePage.tsx";
 import PlantsittingPage from "./page/plantSittingPage.tsx";
 import LikePage from './page/LikePage.tsx';
 
+// bottom-right keeps toasts off the sticky header; on mobile they sit above the bottom tab bar (64px)
+const toastOptions = {
+    defaultOptions: {
+        position: "bottom-right" as const,
+        containerStyle: { marginBottom: { base: "4.5rem", md: "1.25rem" }, marginRight: { base: "0.5rem", md: "1.25rem" } },
+    },
+};
+
 const PLANT_SITTING_TYPES = ["all_plants", "care-requests"];
 
 export function isLoggedIn(): boolean {
@@ -47,7 +55,7 @@ function PlantSittingRoute() {
 
 function App() {
     return (
-        <ChakraProvider theme={theme}>
+        <ChakraProvider theme={theme} toastOptions={toastOptions}>
             <Router>
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />

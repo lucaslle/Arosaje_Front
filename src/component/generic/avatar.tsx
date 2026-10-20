@@ -44,7 +44,7 @@ const AvatarMenu: FC<AvatarMenuProps> = () => {
     };
 
     return (
-        <Menu>
+        <Menu placement="bottom-end" isLazy>
             <MenuButton aria-label={t("header.accountMenu")} borderRadius="full" _focusVisible={{ boxShadow: "outline" }}>
                 <Avatar
                     size="sm"

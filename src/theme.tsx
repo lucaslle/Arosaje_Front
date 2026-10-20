@@ -70,15 +70,14 @@ const theme = extendTheme({
                 pointerEvents: 'none',
             },
             'body::before': {
-                inset: '-10%',
                 backgroundImage: [
                     'radial-gradient(38rem 38rem at 8% 4%, var(--chakra-colors-bg-glow1), transparent 70%)',
                     'radial-gradient(32rem 32rem at 96% 18%, var(--chakra-colors-bg-glow2), transparent 70%)',
                     'radial-gradient(44rem 44rem at 72% 104%, var(--chakra-colors-bg-glow3), transparent 70%)',
                     'radial-gradient(26rem 26rem at 18% 88%, var(--chakra-colors-bg-glow2), transparent 70%)',
                 ].join(', '),
-                filter: 'blur(8px)',
-                animation: 'canvasDrift 40s ease-in-out infinite alternate',
+                // opacity only: a transform would grow the layer past the viewport and add scrollbars
+                animation: 'canvasBreath 14s ease-in-out infinite alternate',
             },
             'body::after': {
                 backgroundColor: 'bg.pattern',
@@ -87,9 +86,9 @@ const theme = extendTheme({
                 maskSize: '180px 180px',
                 WebkitMaskSize: '180px 180px',
             },
-            '@keyframes canvasDrift': {
-                from: { transform: 'translate3d(0, 0, 0) scale(1)' },
-                to: { transform: 'translate3d(-3%, 2%, 0) scale(1.06)' },
+            '@keyframes canvasBreath': {
+                from: { opacity: 0.7 },
+                to: { opacity: 1 },
             },
             '@media (prefers-reduced-motion: reduce)': {
                 'body::before': { animation: 'none' },

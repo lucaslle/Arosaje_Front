@@ -49,12 +49,12 @@ const FLAGS: Record<Language, ReactElement> = {
     ),
 };
 
-const Flag = ({ language, size = 5 }: { language: Language; size?: number }) => (
+const Flag = ({ language, width = 20 }: { language: Language; width?: number }) => (
     <Box
         as="svg"
         viewBox="0 0 30 20"
-        w={size}
-        h={size * (2 / 3)}
+        w={`${width}px`}
+        h={`${(width * 2) / 3}px`}
         borderRadius="sm"
         boxShadow="0 0 0 1px rgba(0, 0, 0, 0.15)"
         flexShrink={0}

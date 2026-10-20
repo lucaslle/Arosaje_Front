@@ -114,7 +114,7 @@ export default function LoginPage() {
             >
                 <Brand color="white" />
                 <Box color="white" maxW="md">
-                    <Heading as="p" size="2xl" lineHeight="short" mb={4}>
+                    <Heading as="p" size="2xl" lineHeight="short" color="white" textShadow="0 2px 12px rgba(0, 0, 0, 0.35)" mb={4}>
                         {t("login.hero")}
                     </Heading>
                     <Text fontSize="lg" color="whiteAlpha.900">
