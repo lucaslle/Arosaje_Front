@@ -1,8 +1,9 @@
 import { FormControl, FormErrorMessage, FormLabel, IconButton, Input, InputGroup, InputRightElement } from "@chakra-ui/react";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 import { useT } from "../../../i18n/index.ts";
+import type { FieldProps } from "./types.ts";
 
-export const PasswordInput = ({ name, label, value, onChange, showPassword, onTogglePassword, autoComplete = "", error = "" }) => {
+export const PasswordInput = ({ name, label, value, onChange, showPassword, onTogglePassword, autoComplete = "", error = "" }: FieldProps & { showPassword: boolean; onTogglePassword: () => void }) => {
     const t = useT();
     return (
     <FormControl isRequired isInvalid={!!error}>

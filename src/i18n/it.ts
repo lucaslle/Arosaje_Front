@@ -41,6 +41,7 @@ export const it: Record<keyof typeof fr, string> = {
     "login.submitting": "Accesso in corso…",
     "login.success": "Accesso effettuato",
     "login.badCredentials": "E-mail o password errati",
+    "login.tooManyAttempts": "Troppi tentativi. Riprova tra 15 minuti.",
     "login.genericError": "Si è verificato un errore durante l'accesso",
     "login.showPassword": "Mostra password",
     "login.hidePassword": "Nascondi password",

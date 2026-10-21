@@ -41,6 +41,7 @@ export const pt: Record<keyof typeof fr, string> = {
     "login.submitting": "A iniciar sessão…",
     "login.success": "Sessão iniciada",
     "login.badCredentials": "E-mail ou palavra-passe incorretos",
+    "login.tooManyAttempts": "Demasiadas tentativas. Tenta novamente daqui a 15 minutos.",
     "login.genericError": "Ocorreu um erro ao iniciar sessão",
     "login.showPassword": "Mostrar palavra-passe",
     "login.hidePassword": "Ocultar palavra-passe",

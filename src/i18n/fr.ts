@@ -42,6 +42,7 @@ export const fr = {
     "login.submitting": "Connexion…",
     "login.success": "Connexion réussie",
     "login.badCredentials": "E-mail ou mot de passe incorrect",
+    "login.tooManyAttempts": "Trop de tentatives. Réessayez dans 15 minutes.",
     "login.genericError": "Une erreur est survenue lors de la connexion",
     "login.showPassword": "Afficher le mot de passe",
     "login.hidePassword": "Masquer le mot de passe",

@@ -41,6 +41,7 @@ export const de: Record<keyof typeof fr, string> = {
     "login.submitting": "Anmeldung…",
     "login.success": "Angemeldet",
     "login.badCredentials": "E-Mail oder Passwort falsch",
+    "login.tooManyAttempts": "Zu viele Versuche. Versuche es in 15 Minuten erneut.",
     "login.genericError": "Bei der Anmeldung ist ein Fehler aufgetreten",
     "login.showPassword": "Passwort anzeigen",
     "login.hidePassword": "Passwort verbergen",

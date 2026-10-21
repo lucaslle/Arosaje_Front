@@ -64,11 +64,9 @@ L'API n'accepte que les origines listées dans son réglage `CORS_ORIGINS` (par 
 | `npm run dev` | Serveur de développement avec rechargement automatique |
 | `npm test` | Lance tous les tests une fois |
 | `npm run test:ui` | Interface de Vitest pour lancer les tests à la main |
-| `npx vite build` | Construit la version de production dans `dist/` |
+| `npm run build` | Vérifie les types puis construit la version de production dans `dist/` |
 | `npm run preview` | Sert localement la version construite |
 | `npm run lint` | Analyse le code avec ESLint |
-
-`npm run build` vérifie aussi les types avant de construire. Il échoue pour l'instant, à cause d'erreurs de typage dans du code ancien. En attendant leur correction, la CI utilise `npx vite build`.
 
 ## Organisation du code
 
@@ -118,4 +116,4 @@ Les couleurs sont des couleurs nommées (`bg.surface`, `text.muted`, `text.brand
 npm test
 ```
 
-La CI GitHub (`.github/workflows/test.yml`) lance `npm ci`, `npm test` et `npx vite build` à chaque push.
+La CI GitHub (`.github/workflows/test.yml`) lance `npm ci`, `npm test` et `npm run build` à chaque push.

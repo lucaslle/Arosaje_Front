@@ -149,7 +149,7 @@ const DrawerComment = ({
                                     <Flex justify="space-between" align="center" mb={2} gap={2}>
                                         <OwnerTag name={c.user.username} isBotanist={c.user?.is_botanist} />
                                         <Text as="time" dateTime={c.time_stamp} fontSize="xs" color="text.muted" flexShrink={0}>
-                                            {new Date(c.time_stamp).toLocaleString(locale, { dateStyle: "short", timeStyle: "short" })}
+                                            {new Date(c.time_stamp + "Z").toLocaleString(locale, { dateStyle: "short", timeStyle: "short" })}
                                         </Text>
                                     </Flex>
                                     <Text color="text.primary">{c.comment}</Text>

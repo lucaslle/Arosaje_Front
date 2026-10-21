@@ -8,7 +8,6 @@ import {
     Text,
     Heading,
     VStack,
-    useDisclosure,
     Box,
 } from "@chakra-ui/react";
 import { useLanguageStore, useT } from "../../../i18n/index.ts";

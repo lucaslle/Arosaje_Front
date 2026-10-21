@@ -2,8 +2,9 @@ import { VStack, Button, Alert, AlertIcon } from "@chakra-ui/react";
 import { FormInput } from "./formInput.tsx";
 import { PasswordInput } from "./passwordInput.tsx";
 import { useT } from "../../../i18n/index.ts";
+import type { LoginFormProps } from "./types.ts";
 
-export const LoginForm = ({ formData, onSubmit, onChange, isLoading, showPassword, onTogglePassword, error }) => {
+export const LoginForm = ({ formData, onSubmit, onChange, isLoading, showPassword, onTogglePassword, error }: LoginFormProps) => {
     const t = useT();
     return (
     <form onSubmit={onSubmit}>

@@ -45,6 +45,7 @@ export const en: Record<keyof typeof fr, string> = {
     "login.submitting": "Signing in…",
     "login.success": "Signed in",
     "login.badCredentials": "Incorrect email or password",
+    "login.tooManyAttempts": "Too many attempts. Try again in 15 minutes.",
     "login.genericError": "Something went wrong while signing in",
     "login.showPassword": "Show password",
     "login.hidePassword": "Hide password",

@@ -1,7 +1,7 @@
 import {
     Box, Button, Flex, Grid, Heading, Tab, TabList, TabPanel, TabPanels, Tabs, Text, useDisclosure, useToast,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useCurrentUserStore from "../store/CurrentUser";
 import { loginUser, registerUser } from "../api/authQuery.ts";
@@ -11,9 +11,10 @@ import ModalRGPD from "../component/specific/RGPDmodale/RGPDModale.tsx";
 import Brand from "../component/generic/brand.tsx";
 import { ColorModeToggle, LanguageMenu } from "../component/generic/preferences.tsx";
 import { isTranslationKey, useT } from "../i18n/index.ts";
-import loginBg from "../assets/LoginBg.png";
+import type { FieldChange, RegisterData } from "../component/specific/login/types.ts";
+import loginBg from "../assets/login-bg.webp";
 
-const EMPTY_REGISTER = { email: "", username: "", phone: "", password: "", password2: "", is_botanist: false };
+const EMPTY_REGISTER: RegisterData = { email: "", username: "", phone: "", password: "", password2: "", is_botanist: false };
 
 
 export default function LoginPage() {
@@ -35,7 +36,7 @@ export default function LoginPage() {
         return message ? (isTranslationKey(message) ? t(message) : message) : t(fallback);
     };
 
-    const handleTabChange = (index) => {
+    const handleTabChange = (index: number) => {
         setTabIndex(index);
         setShowPassword(false);
         setLoginError("");
@@ -43,18 +44,18 @@ export default function LoginPage() {
         setRegisterFieldErrors({});
     };
 
-    const handleLoginChange = (e) => {
+    const handleLoginChange: FieldChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleRegisterChange = (e) => {
+    const handleRegisterChange: FieldChange = (e) => {
         const { name, value } = e.target;
         setFormRegisterData(prev => ({ ...prev, [name]: value }));
         if (name === "password2" || name === "password") setRegisterFieldErrors({});
     };
 
-    const handleLogin = async (e) => {
+    const handleLogin = async (e: FormEvent) => {
         e.preventDefault();
         setLoginError("");
         setIsLoading(true);
@@ -74,7 +75,7 @@ export default function LoginPage() {
         }
     };
 
-    const handleRegister = async (e) => {
+    const handleRegister = async (e: FormEvent) => {
         e.preventDefault();
         setRegisterError("");
         if (formRegisterData.password !== formRegisterData.password2) {

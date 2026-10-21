@@ -2,8 +2,9 @@ import { VStack, Button, Checkbox, Alert, AlertIcon, SimpleGrid, Text } from "@c
 import { FormInput } from "./formInput.tsx";
 import { PasswordInput } from "./passwordInput.tsx";
 import { useT } from "../../../i18n/index.ts";
+import type { RegisterFormProps } from "./types.ts";
 
-export const RegisterForm = ({ formData, onSubmit, onChange, isLoading, showPassword, onTogglePassword, error, fieldErrors }) => {
+export const RegisterForm = ({ formData, onSubmit, onChange, isLoading, showPassword, onTogglePassword, error, fieldErrors }: RegisterFormProps) => {
     const t = useT();
     return (
     <form onSubmit={onSubmit}>

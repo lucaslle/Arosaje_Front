@@ -1,5 +1,5 @@
 import { API_URL } from "./apiUrl.ts";
-export const loginUser = async (credentials) => {
+export const loginUser = async (credentials: { email: string; password: string }) => {
     const response = await fetch(`${API_URL}/token`, {
         method: 'POST',
         headers: {
@@ -13,6 +13,7 @@ export const loginUser = async (credentials) => {
 
     if (!response.ok) {
         if (response.status === 401) throw new Error('login.badCredentials');
+        if (response.status === 429) throw new Error('login.tooManyAttempts');
         const data = await response.json();
         throw new Error(typeof data.detail === 'string' ? data.detail : 'login.genericError');
     }
@@ -21,7 +22,7 @@ export const loginUser = async (credentials) => {
 };
 
 
-export const registerUser = async (userData) => {
+export const registerUser = async (userData: { username: string; email: string; phone: string; password: string; is_botanist: boolean }) => {
     const response = await fetch(`${API_URL}/users/`, {
         method: 'POST',
         headers: {
