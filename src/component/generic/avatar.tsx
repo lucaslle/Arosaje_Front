@@ -5,15 +5,12 @@ import {
     MenuList,
     MenuItem,
     MenuDivider,
-    Icon,
     Box,
     useToast,
 } from "@chakra-ui/react";
-import { FiSettings, FiLogOut } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import useCurrentUserStore from "../../store/CurrentUser.ts";
 import { useT } from "../../i18n/index.ts";
-import { isVerifiedBotanist, useMeStore } from "../../store/me.ts";
+import { isVerifiedBotanist, signOut, useMeStore } from "../../store/me.ts";
 import { ADMIN_ITEM, ADVICE_ITEM } from "./sidebar.tsx";
 import {FC} from "react";
 
@@ -25,9 +22,7 @@ interface AvatarMenuProps {
 const AvatarMenu: FC<AvatarMenuProps> = () => {
     const navigate = useNavigate();
     const toast = useToast();
-    const user = useCurrentUserStore(state => state.user);
 
-    const logout = useCurrentUserStore(state => state.logout);
     const t = useT();
     const me = useMeStore((state) => state.me);
     // pages left out of the mobile tab bar
@@ -39,9 +34,7 @@ const AvatarMenu: FC<AvatarMenuProps> = () => {
 
     // stateless JWT: the API has no logout route, clearing the token is the logout
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        logout();
-        useMeStore.getState().clear();
+        signOut();
         toast({
             title: t("header.logoutSuccess"),
             status: "success",
@@ -59,7 +52,7 @@ const AvatarMenu: FC<AvatarMenuProps> = () => {
             <MenuButton aria-label={t("header.accountMenu")} borderRadius="full" _focusVisible={{ boxShadow: "outline" }}>
                 <Avatar
                     size="sm"
-                    name={user?.email}
+                    name={me?.username ?? me?.email}
                     bg="brand.700"
                     color="white"
                 />
@@ -77,7 +70,7 @@ const AvatarMenu: FC<AvatarMenuProps> = () => {
                     </MenuItem>
                 ))}
                 <MenuItem
-                    icon={<Icon as={FiSettings} />}
+                    icon={<Box as="i" className="fa-solid fa-gear" aria-hidden="true" w={4} textAlign="center" />}
                     onClick={handleSettingClick}
                     fontWeight="bold"
                 >
@@ -85,7 +78,7 @@ const AvatarMenu: FC<AvatarMenuProps> = () => {
                 </MenuItem>
                 <MenuDivider />
                 <MenuItem
-                    icon={<Icon as={FiLogOut} />}
+                    icon={<Box as="i" className="fa-solid fa-right-from-bracket" aria-hidden="true" w={4} textAlign="center" />}
                     onClick={handleLogout}
                     fontWeight="bold"
                 >

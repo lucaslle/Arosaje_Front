@@ -18,7 +18,7 @@ import {
     useToast
 } from "@chakra-ui/react";
 import OwnerTag from "../../generic/ownerTag.tsx";
-import { API_URL } from "../../../api/apiUrl.ts";
+import { api, jsonBody } from "../../../api/client.ts";
 import { useLocale, useT } from "../../../i18n/index.ts";
 
 const MAX_LENGTH = 200;
@@ -32,7 +32,6 @@ type CommentType = {
         is_botanist: boolean;
     };
 };
-const API_BASE = API_URL;
 
 // verified botanists' comments come first, each group keeps its order
 export const pinBotanistAdvice = <T extends { user: { is_botanist: boolean } }>(comments: T[]): T[] => [
@@ -62,12 +61,7 @@ const DrawerComment = ({
     const fetchComments = async () => {
         try {
             setLoading(true);
-            const res = await fetch(`${API_BASE}/plants/${plantId}/comments/`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-            });
-            if (!res.ok) throw new Error("Erreur réseau");
-            const data = await res.json();
-            setComments(data);
+            setComments(await api<CommentType[]>(`/plants/${plantId}/comments/`));
         } catch (err) {
             console.error("Erreur lors du chargement des commentaires", err);
         } finally {
@@ -79,16 +73,8 @@ const DrawerComment = ({
         if (comment.trim().length === 0) return;
         setIsSending(true);
         try {
-            const res = await fetch(`${API_BASE}/comments/`, {
-                method: "POST",
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ plant_id: plantId, comment: comment.trim() }),
-            });
-            // keep the text on failure so the member does not lose what they typed
-            if (!res.ok) throw new Error(`Failed with status: ${res.status}`);
+            // on failure api() throws before the text is cleared, so the member keeps what they typed
+            await api("/comments/", { method: "POST", body: jsonBody({ plant_id: plantId, comment: comment.trim() }) });
 
             setComment("");
             await fetchComments();

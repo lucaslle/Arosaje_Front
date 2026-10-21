@@ -1,5 +1,5 @@
-import { Box, ChakraProvider } from '@chakra-ui/react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
+import { Box, ChakraProvider, useToast } from '@chakra-ui/react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useNavigate, useParams } from 'react-router-dom';
 import Sidebar, { SIDEBAR_WIDTH } from './component/generic/sidebar';
 import theme from './theme';
 import Header from "./component/generic/header.tsx";
@@ -12,7 +12,9 @@ import AdvicePage from './page/AdvicePage.tsx';
 import AdminPage from './page/AdminPage.tsx';
 import DashboardPage from './page/DashboardPage.tsx';
 import { useEffect } from 'react';
-import { useMeStore } from './store/me.ts';
+import { signOut, useMeStore } from './store/me.ts';
+import { SESSION_EXPIRED } from './api/client.ts';
+import { useT } from './i18n/index.ts';
 
 // bottom-right keeps toasts off the sticky header; on mobile they sit above the bottom tab bar (64px)
 const toastOptions = {
@@ -38,10 +40,26 @@ export function isLoggedIn(): boolean {
 function ProtectedLayout() {
     const loadMe = useMeStore((state) => state.load);
     const loggedIn = isLoggedIn();
+    const navigate = useNavigate();
+    const toast = useToast();
+    const t = useT();
 
     useEffect(() => {
         if (loggedIn) loadMe();
     }, [loggedIn, loadMe]);
+
+    // any page whose API call gets a 401 lands here, once
+    useEffect(() => {
+        const onExpired = () => {
+            signOut();
+            if (!toast.isActive(SESSION_EXPIRED)) {
+                toast({ id: SESSION_EXPIRED, title: t("common.sessionExpired"), description: t("common.pleaseLogInAgain"), status: "warning", duration: 4000, isClosable: true });
+            }
+            navigate("/login", { replace: true });
+        };
+        window.addEventListener(SESSION_EXPIRED, onExpired);
+        return () => window.removeEventListener(SESSION_EXPIRED, onExpired);
+    }, [navigate, toast, t]);
 
     if (!loggedIn) {
         return <Navigate to="/login" replace />;

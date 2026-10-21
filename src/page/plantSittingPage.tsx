@@ -1,6 +1,6 @@
 import { Box, Button, Flex, Input, InputGroup, InputLeftElement, Text, useToast } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import CardFeed from "../component/generic/CardFeed.tsx";
 import PlantGrid from "../component/generic/plantGrid.tsx";
 import EmptyState from "../component/generic/emptyState.tsx";
@@ -28,7 +28,6 @@ function PlantsittingPage() {
     const meId = useMeStore((state) => state.me?.id ?? null);
     const community = useCommunityState();
     const toast = useToast();
-    const navigate = useNavigate();
     const t = useT();
 
     // wait for the member to stop typing before searching
@@ -54,11 +53,7 @@ function PlantsittingPage() {
             })
             .catch((error) => {
                 if (cancelled) return;
-                if (error instanceof ApiError && error.status === 401) {
-                    toast({ title: t("common.sessionExpired"), description: t("common.pleaseLogInAgain"), status: "warning", duration: 3000, isClosable: true });
-                    navigate("/login");
-                    return;
-                }
+                if (error instanceof ApiError && error.status === 401) return; // the layout signs out and redirects
                 toast({ title: t("sitting.loadError"), description: (error as Error).message, status: "error", duration: 3000, isClosable: true });
             })
             .finally(() => !cancelled && setIsLoading(false));

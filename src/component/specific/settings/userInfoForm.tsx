@@ -1,5 +1,4 @@
-import { VStack, FormControl, FormLabel, Input, Button } from "@chakra-ui/react";
-import { FaSave } from "react-icons/fa";
+import { Box, VStack, FormControl, FormLabel, Input, Button } from "@chakra-ui/react";
 import { ChangeEvent, FormEvent } from "react";
 import { useT } from "../../../i18n/index.ts";
 
@@ -36,7 +35,7 @@ export const UserInfoForm = ({ values, onChange, onSubmit, isSaving }: UserInfoF
                 <Input id="settings-phone" name="phone" type="tel" autoComplete="tel" value={values.phone} onChange={onChange} />
             </FormControl>
 
-            <Button type="submit" leftIcon={<FaSave />} isLoading={isSaving} loadingText={t("settings.saving")} mt={2}>
+            <Button type="submit" leftIcon={<Box as="i" className="fa-solid fa-floppy-disk" aria-hidden="true" />} isLoading={isSaving} loadingText={t("settings.saving")} mt={2}>
                 {t("settings.saveInfo")}
             </Button>
         </VStack>

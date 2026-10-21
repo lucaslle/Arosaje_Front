@@ -1,4 +1,3 @@
-import { API_URL } from "../../api/apiUrl.ts";
 import {
     Box,
     Card,
@@ -31,7 +30,8 @@ import {
 } from "@chakra-ui/react";
 import { useState } from "react";
 import DrawerComment from "../specific/Comment/DrawerComment.tsx";
-import { apiErrorMessage } from "../../api/apiError.ts";
+import { api } from "../../api/client.ts";
+import type { Plant } from "../../api/types.ts";
 import { useFormatDay, useT } from "../../i18n/index.ts";
 import OffersDrawer from "../specific/care/offersDrawer.tsx";
 import CareLogDrawer from "../specific/care/careLogDrawer.tsx";
@@ -39,38 +39,14 @@ import AdviceModal from "../specific/adviceModal.tsx";
 import PlantPhoto from "./plantPhoto.tsx";
 import OwnerTag from "./ownerTag.tsx";
 
-interface Owner {
-    email: string;
-    phone: string;
-    username: string;
-    id: number;
-    is_active: boolean;
-    is_botanist: boolean;
-}
-
-interface Plant {
-    name: string;
-    location: string;
-    care_instructions: string;
-    id: number;
-    photo_url: string;
-    owner_id: number;
-    created_at: string;
-    in_care: boolean;
-    in_care_id: number | null;
-    care_requested: boolean;
-    care_start: string | null;
-    care_end: string | null;
-    owner?: Owner;
-}
-
 interface CardCurrentUserProps {
     plant: Plant;
     onUpdate: (updatedPlant: Plant) => void;
-    onCareChanged: () => void;
+    // the list must be fetched again: plant deleted or its care changed
+    onRefresh: () => void;
 }
 
-const CardCurrentUser = ({ plant, onUpdate, onCareChanged }: CardCurrentUserProps) => {
+const CardCurrentUser = ({ plant, onUpdate, onRefresh }: CardCurrentUserProps) => {
     const toast = useToast();
     const t = useT();
     const { isOpen : updateIsOpen , onOpen : updateOnOpen, onClose : updateOnClose } = useDisclosure();
@@ -138,139 +114,52 @@ const CardCurrentUser = ({ plant, onUpdate, onCareChanged }: CardCurrentUserProp
         }
     };
     const handleDelete = async () => {
-        if (window.confirm(t("plant.confirmDelete", { name: plant.name }))) {
-            try {
-                const token = localStorage.getItem("token");
-
-                if (!token) {
-                    toast({
-                        title: t("common.error"),
-                        description: t("common.mustBeLoggedIn"),
-                        status: "error",
-                        duration: 5000,
-                        isClosable: true,
-                    });
-                    return;
-                }
-
-                const response = await fetch(`${API_URL}/plants?plant_id=${plant.id}`, {
-                    method: "DELETE",
-                    headers: {
-                        "Authorization": `Bearer ${token}`,
-                        "Content-Type": "application/json"
-                    },
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(apiErrorMessage(errorData, t("plant.deleteError")));
-                }
-
-                toast({
-                    title: t("plant.deleted", { name: plant.name }),
-                    status: "success",
-                    duration: 5000,
-                    isClosable: true,
-                });
-                window.location.reload();
-            }
-            catch (error) {
-                const errorMessage = error instanceof Error ? error.message : t("common.unknownError");
-
-                toast({
-                    title: t("plant.deleteError"),
-                    description: errorMessage,
-                    status: "error",
-                    duration: 5000,
-                    isClosable: true,
-                });
-
-                console.error("Erreur lors de la suppression:", error);
-            }
+        if (!window.confirm(t("plant.confirmDelete", { name: plant.name }))) return;
+        try {
+            await api(`/plants?plant_id=${plant.id}`, { method: "DELETE" });
+            toast({ title: t("plant.deleted", { name: plant.name }), status: "success", duration: 5000, isClosable: true });
+            onRefresh();
+        } catch (error) {
+            toast({ title: t("plant.deleteError"), description: (error as Error).message, status: "error", duration: 5000, isClosable: true });
         }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        try {
-            const token = localStorage.getItem("token");
-
-            if (!token) {
-                toast({
-                    title: t("common.error"),
-                    description: t("common.mustBeLoggedIn"),
-                    status: "error",
-                    duration: 5000,
-                    isClosable: true,
-                });
-                return;
-            }
-
-
-            if (formData.care_requested && (!formData.care_start || !formData.care_end)) {
-                toast({ title: t("care.datesRequired"), status: "warning", duration: 4000, isClosable: true });
-                return;
-            }
-
-            // form fields, not the URL: the location is personal and URLs end up in the server logs
-            const formDataToSend = new FormData();
-            formDataToSend.append("name", formData.name);
-            formDataToSend.append("location", formData.location);
-            formDataToSend.append("care_instructions", formData.care_instructions);
-            formDataToSend.append("care_requested", String(formData.care_requested));
-            if (formData.care_requested) {
-                formDataToSend.append("care_start", formData.care_start);
-                formDataToSend.append("care_end", formData.care_end);
-            }
-            if (formData.photo) {
-                formDataToSend.append("photo", formData.photo);
-            }
-
-            const response = await fetch(`${API_URL}/plants/${plant.id}`, {
-                method: "PUT",
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                },
-                body: formDataToSend
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(apiErrorMessage(errorData, t("plant.updateError")));
-            }
-
-            const updatedPlant = await response.json();
-
-            toast({
-                title: t("plant.updated", { name: formData.name }),
-                status: "success",
-                duration: 5000,
-                isClosable: true,
-            });
-            onUpdate(updatedPlant);
-            updateOnClose();
-
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : t("common.unknownError");
-
-            toast({
-                title: t("plant.updateError"),
-                description: errorMessage,
-                status: "error",
-                duration: 5000,
-                isClosable: true,
-            });
-
-            console.error("Erreur lors de la mise à jour:", error);
+        if (formData.care_requested && (!formData.care_start || !formData.care_end)) {
+            toast({ title: t("care.datesRequired"), status: "warning", duration: 4000, isClosable: true });
+            return;
         }
 
+        // form fields, not the URL: the location is personal and URLs end up in the server logs
+        const body = new FormData();
+        body.append("name", formData.name);
+        body.append("location", formData.location);
+        body.append("care_instructions", formData.care_instructions);
+        body.append("care_requested", String(formData.care_requested));
+        if (formData.care_requested) {
+            body.append("care_start", formData.care_start);
+            body.append("care_end", formData.care_end);
+        }
+        if (formData.photo) {
+            body.append("photo", formData.photo);
+        }
+
+        try {
+            const updatedPlant = await api<Plant>(`/plants/${plant.id}`, { method: "PUT", body });
+            toast({ title: t("plant.updated", { name: formData.name }), status: "success", duration: 5000, isClosable: true });
+            onUpdate(updatedPlant);
+            updateOnClose();
+        } catch (error) {
+            toast({ title: t("plant.updateError"), description: (error as Error).message, status: "error", duration: 5000, isClosable: true });
+        }
     };
 
     return (
         <>
             <Card overflow="hidden" h="100%" transition="box-shadow 200ms ease, transform 200ms ease" _hover={{ boxShadow: "cardHover", transform: "translateY(-2px)" }}>
                 <Box position="relative">
-                    <PlantPhoto url={plant.photo_url} alt={plant.name} />
+                    <PlantPhoto url={plant.photo_url ?? ""} alt={plant.name} />
                     {(plant.in_care || plant.care_requested) && (
                         <Badge position="absolute" top={3} left={3} bg={plant.in_care ? "brand.700" : "accent.500"} color={plant.in_care ? "white" : "black"} borderRadius="full" px={3} py={1} textTransform="none" fontSize="xs">
                             {plant.in_care ? t("plant.inCare") : t("plant.careRequested")}
@@ -296,7 +185,7 @@ const CardCurrentUser = ({ plant, onUpdate, onCareChanged }: CardCurrentUserProp
                     )}
                 </CardBody>
                 <CardFooter px={4} py={3} borderTopWidth="1px" borderColor="border.subtle" justifyContent="space-between" alignItems="center">
-                    <OwnerTag name={plant.owner?.username} isBotanist={plant.owner?.is_botanist} />
+                    <OwnerTag name={plant.owner?.username ?? undefined} isBotanist={plant.owner?.is_botanist} />
                     <Menu placement="bottom-end" isLazy>
                         <MenuButton
                             as={IconButton}
@@ -419,7 +308,7 @@ const CardCurrentUser = ({ plant, onUpdate, onCareChanged }: CardCurrentUserProp
                 </ModalContent>
             </Modal>
             <DrawerComment isOpen={commentIsOpen} onClose={commentOnClose} plantId={plant.id} />
-            <OffersDrawer plantId={plant.id} isOpen={offers.isOpen} onClose={offers.onClose} onCareChanged={onCareChanged} />
+            <OffersDrawer plantId={plant.id} isOpen={offers.isOpen} onClose={offers.onClose} onCareChanged={onRefresh} />
             <CareLogDrawer plantId={plant.id} isOpen={journal.isOpen} canWrite={false} onClose={journal.onClose} />
             <AdviceModal plantId={plant.id} isOpen={advice.isOpen} onClose={advice.onClose} />
         </>

@@ -3,7 +3,6 @@ import {
 } from "@chakra-ui/react";
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import useCurrentUserStore from "../store/CurrentUser";
 import { loginUser, registerUser } from "../api/authQuery.ts";
 import { LoginForm } from "../component/specific/login/loginForm.tsx";
 import { RegisterForm } from "../component/specific/login/registerForm.tsx";
@@ -29,7 +28,6 @@ export default function LoginPage() {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const navigate = useNavigate();
     const toast = useToast();
-    const setCurrentUser = useCurrentUserStore(state => state.setCurrentUser);
     const t = useT();
     const errorText = (error: unknown, fallback: Parameters<typeof t>[0]) => {
         const message = (error as Error).message;
@@ -64,7 +62,6 @@ export default function LoginPage() {
 
             if (data.access_token) {
                 localStorage.setItem('token', data.access_token);
-                setCurrentUser({ email: formData.email, token: data.access_token });
                 toast({ title: t("login.success"), status: "success", duration: 3000, isClosable: true });
                 navigate("/dashboard");
             }

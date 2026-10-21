@@ -1,4 +1,3 @@
-import { API_URL } from "../../api/apiUrl.ts";
 import React, { useRef, useState } from 'react';
 import {
     Box,
@@ -15,7 +14,7 @@ import {
     useToast
 } from "@chakra-ui/react";
 import GenericModal from "../generic/genericModal.tsx";
-import { apiErrorMessage } from "../../api/apiError.ts";
+import { api } from "../../api/client.ts";
 import { useT } from "../../i18n/index.ts";
 
 interface AddModalProps {
@@ -70,18 +69,7 @@ const AddModal = ({ isOpen, onClose }: AddModalProps) => {
                 submitData.append('photo', selectedFile);
             }
 
-            const response = await fetch(`${API_URL}/plants/`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                },
-                body: submitData
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(apiErrorMessage(errorData, t("add.checkFields")));
-            }
+            await api('/plants/', { method: 'POST', body: submitData });
 
             toast({
                 title: t('add.success'),

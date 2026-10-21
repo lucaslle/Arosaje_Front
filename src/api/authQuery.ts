@@ -1,49 +1,20 @@
-import { API_URL } from "./apiUrl.ts";
-export const loginUser = async (credentials: { email: string; password: string }) => {
-    const response = await fetch(`${API_URL}/token`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-            username: credentials.email,
-            password: credentials.password,
-        }),
-    });
+import { ApiError, api, jsonBody } from "./client.ts";
 
-    if (!response.ok) {
-        if (response.status === 401) throw new Error('login.badCredentials');
-        if (response.status === 429) throw new Error('login.tooManyAttempts');
-        const data = await response.json();
-        throw new Error(typeof data.detail === 'string' ? data.detail : 'login.genericError');
-    }
-
-    return response.json();
+// errors are translation keys when the page has a better message than the API's
+const rethrow = (error: unknown, keys: Record<number, string>, fallback: string): never => {
+    if (error instanceof ApiError && keys[error.status]) throw new Error(keys[error.status]);
+    if (error instanceof ApiError && !error.message.startsWith("HTTP ")) throw error;
+    throw new Error(fallback);
 };
 
+export const loginUser = (credentials: { email: string; password: string }) =>
+    api<{ access_token: string }>("/token", {
+        method: "POST",
+        body: new URLSearchParams({ username: credentials.email, password: credentials.password }),
+    }).catch((error) => rethrow(error, { 401: "login.badCredentials", 429: "login.tooManyAttempts" }, "login.genericError"));
 
-export const registerUser = async (userData: { username: string; email: string; phone: string; password: string; is_botanist: boolean }) => {
-    const response = await fetch(`${API_URL}/users/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-            username: userData.username,
-            email: userData.email,
-            phone: userData.phone,
-            password: userData.password,
-            is_botanist: userData.is_botanist
-        }),
-        credentials: 'include',
-        mode: 'cors'
-    });
-
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(typeof error.detail === "string" ? error.detail : "register.genericError");
-    }
-
-    return response.json();
-};
+export const registerUser = (user: { username: string; email: string; phone: string; password: string; is_botanist: boolean }) =>
+    api("/users/", {
+        method: "POST",
+        body: jsonBody({ username: user.username, email: user.email, phone: user.phone, password: user.password, is_botanist: user.is_botanist }),
+    }).catch((error) => rethrow(error, {}, "register.genericError"));

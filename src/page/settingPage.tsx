@@ -3,48 +3,30 @@ import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AccountSettings } from "../component/specific/settings/accountSetting.tsx";
 import { PasswordForm } from "../component/specific/settings/passwordForm.tsx";
-import { api } from "../api/client.ts";
-import { useMeStore } from "../store/me.ts";
+import { api, jsonBody } from "../api/client.ts";
+import { signOut, useMeStore } from "../store/me.ts";
 import { UserInfo, UserInfoForm } from "../component/specific/settings/userInfoForm.tsx";
-import { API_URL } from "../api/apiUrl.ts";
-import { apiErrorMessage } from "../api/apiError.ts";
-import useCurrentUserStore from "../store/CurrentUser.ts";
 import { LanguageMenu } from "../component/generic/preferences.tsx";
 import { useT } from "../i18n/index.ts";
 
-const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
 function SettingPage() {
-    const [userId, setUserId] = useState<number | null>(null);
     const [values, setValues] = useState<UserInfo>({ username: "", email: "", phone: "" });
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const me = useMeStore((state) => state.me);
+    const userId = me?.id ?? null;
     const toast = useToast();
     const navigate = useNavigate();
-    const logout = useCurrentUserStore((state) => state.logout);
     const t = useT();
     const { colorMode, setColorMode } = useColorMode();
     const [skeletonStart, skeletonEnd] = useColorModeValue(["brand.50", "brand.100"], ["whiteAlpha.100", "whiteAlpha.200"]);
 
+    // the signed-in member is already loaded by the layout
     useEffect(() => {
-        const fetchMe = async () => {
-            const response = await fetch(`${API_URL}/users/me/`, { headers: authHeaders() });
-            if (response.status === 401) {
-                navigate("/login");
-                return;
-            }
-            if (!response.ok) {
-                toast({ title: t("settings.loadError"), status: "error", duration: 4000, isClosable: true });
-                return;
-            }
-            const me = await response.json();
-            setUserId(me.id);
-            setValues({ username: me.username, email: me.email, phone: me.phone });
-        };
-        fetchMe();
-    }, [navigate, toast, t]);
+        if (me) setValues({ username: me.username, email: me.email, phone: me.phone });
+    }, [me]);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -57,14 +39,7 @@ function SettingPage() {
         setIsSaving(true);
         try {
             // in the body: e-mail and phone must never appear in a URL, which the server logs
-            const response = await fetch(`${API_URL}/users/${userId}`, {
-                method: "PUT",
-                headers: { ...authHeaders(), "Content-Type": "application/json" },
-                body: JSON.stringify(values),
-            });
-            if (!response.ok) {
-                throw new Error(apiErrorMessage(await response.json(), t("settings.checkFields")));
-            }
+            await api(`/users/${userId}`, { method: "PUT", body: jsonBody(values) });
             toast({ title: t("settings.saved"), status: "success", duration: 3000, isClosable: true });
             useMeStore.getState().load();
         } catch (error) {
@@ -95,11 +70,8 @@ function SettingPage() {
         if (userId === null) return;
         setIsDeleting(true);
         try {
-            const response = await fetch(`${API_URL}/users/?id=${userId}`, { method: "DELETE", headers: authHeaders() });
-            if (!response.ok) throw new Error(`Failed with status: ${response.status}`);
-            localStorage.removeItem("token");
-            logout();
-            useMeStore.getState().clear();
+            await api(`/users/?id=${userId}`, { method: "DELETE" });
+            signOut();
             toast({ title: t("settings.deleted"), status: "success", duration: 3000, isClosable: true });
             navigate("/login", { replace: true });
         } catch {

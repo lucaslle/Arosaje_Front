@@ -22,3 +22,10 @@ export const useMeStore = create<MeState>()((set) => ({
 }));
 
 export const isVerifiedBotanist = (me: Me | null) => Boolean(me?.is_botanist && me.botanist_verified);
+
+// the token lives only in localStorage; signing out forgets it and the loaded member
+export const signOut = () => {
+    localStorage.removeItem("token");
+    useMeStore.getState().clear();
+};
+
